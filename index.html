@@ -412,7 +412,7 @@
         <input type="password" id="loginPass" placeholder="Nhập mật khẩu">
       </div>
       <button class="btn btn-primary btn-block" onclick="handleLogin()">Đăng nhập</button>
-      <div class="login-hint">Vui lòng chọn tài khoản và nhập mật khẩu đã cung cấp để truy cập phần mềm.</div>
+      <div class="login-hint">Tài khoản mẫu: <b>admin</b> / mật khẩu <b>admin123</b> (vai trò Admin). Vào mục Người dùng sau khi đăng nhập để thêm tài khoản Sales / Kế toán / Viewer.</div>
       <div style="text-align:center; margin-top:16px;"><a href="#" onclick="backToModuleHub(); return false;" style="font-size:12px; color:var(--steel-500); text-decoration:none;">← Chọn phần mềm khác</a></div>
     </div>
   </div>
@@ -780,6 +780,56 @@
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('poUpdateModal')">Hủy</button>
       <button class="btn btn-primary" onclick="submitPOUpdate()">Lưu cập nhật PO</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULK IMPORT STATUS UPDATE MODAL -->
+<div class="overlay" id="importStatusUpdateModal">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h2>Cập nhật Tiến độ nhập hàng</h2>
+      <button class="modal-close" onclick="closeModal('importStatusUpdateModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="isUpdProjectId">
+      <p style="font-size:12.5px; color:var(--ink-600); line-height:1.7;">
+        Chọn hàng hóa cần cập nhật và chọn tiến độ nhập hàng mới. Có thể chọn nhiều hàng hóa cùng lúc.
+      </p>
+      <div class="grid-3">
+        <div class="field"><label>Tiến độ nhập hàng mới</label>
+          <select id="isUpdStatus">
+            <option>Chờ duyệt</option>
+            <option>Đang load hàng</option>
+            <option>Kho SG</option>
+            <option>Kho HN</option>
+            <option>Ngưng nhập</option>
+          </select>
+        </div>
+        <div class="field"></div>
+        <div class="field"></div>
+      </div>
+      <div class="subhead">Lọc hàng hóa để chọn nhanh</div>
+      <div class="filter-bar" style="margin-bottom:12px;">
+        <div class="field" style="min-width:200px;">
+          <label>Tìm kiếm</label>
+          <input id="isUpdFltSearch" placeholder="Tên sản phẩm / mã hàng..." oninput="renderImportStatusUpdateTable()">
+        </div>
+        <div class="field" style="min-width:170px;">
+          <label>Hệ thống</label>
+          <select id="isUpdFltSystem" onchange="renderImportStatusUpdateTable()"><option value="">Tất cả hệ thống</option></select>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="align-self:flex-end;" onclick="clearImportStatusUpdateFilters()">Xóa lọc</button>
+      </div>
+      <div class="subhead">Chọn hàng hóa</div>
+      <table class="mini-table" id="isUpdTable">
+        <thead><tr><th style="width:28px;"></th><th>Sản phẩm</th><th>Hệ thống</th><th>Tiến độ hiện tại</th></tr></thead>
+        <tbody id="isUpdTableBody"></tbody>
+      </table>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('importStatusUpdateModal')">Hủy</button>
+      <button class="btn btn-primary" onclick="submitImportStatusUpdate()">Lưu cập nhật tiến độ</button>
     </div>
   </div>
 </div>
@@ -1200,6 +1250,7 @@ function renderMain(){
         ${can('deleteProjects') ? `<button class="btn btn-danger btn-sm" onclick="deleteProject('${proj.id}')">Xóa dự án</button>` : ''}
         ${can('manageDeliveries') ? `<button class="btn btn-ghost btn-sm" onclick="openDeliveryUpdateModal('${proj.id}')">🚚 Cập nhật giao hàng</button>` : ''}
         ${can('managePO') ? `<button class="btn btn-ghost btn-sm" onclick="openPOUpdateModal('${proj.id}')">📋 Cập nhật PO đặt hàng</button>` : ''}
+        ${can('manageItems') ? `<button class="btn btn-ghost btn-sm" onclick="openImportStatusUpdateModal('${proj.id}')">📥 Cập nhật Tiến độ nhập hàng</button>` : ''}
         <button class="btn btn-ghost btn-sm" onclick="openDeliveryListModal('${proj.id}')">📦 Đợt giao hàng</button>
         ${can('manageItems') ? `<button class="btn btn-ghost btn-sm" onclick="openImportModal('${proj.id}')">⇪ Nhập từ Excel</button>` : ''}
         ${can('manageItems') ? `<button class="btn btn-primary btn-sm" onclick="openItemModal(null,'${proj.id}')">+ Thêm hàng hóa</button>` : ''}
@@ -2021,6 +2072,88 @@ function submitPOUpdate(){
   closeModal('poUpdateModal');
   renderMain();
   toast(`Đã cập nhật PO đặt hàng cho ${count} hàng hóa.`);
+}
+
+let importStatusUpdateProjectId = null;
+let importStatusUpdateSelections = {};
+
+function captureImportStatusUpdateSelections(){
+  document.querySelectorAll('#isUpdTableBody tr').forEach(tr=>{
+    const cb = tr.querySelector('.isUpdCheck');
+    if(!cb) return;
+    importStatusUpdateSelections[cb.dataset.item] = cb.checked;
+  });
+}
+function openImportStatusUpdateModal(projectId){
+  if(!can('manageItems')){ toast('Bạn không có quyền cập nhật tiến độ nhập hàng.', true); return; }
+  const items = state.items.filter(i=>i.projectId===projectId);
+  if(items.length === 0){ toast('Dự án chưa có hàng hóa nào để cập nhật.', true); return; }
+  importStatusUpdateProjectId = projectId;
+  importStatusUpdateSelections = {};
+  document.getElementById('isUpdProjectId').value = projectId;
+  document.getElementById('isUpdStatus').value = 'Chờ duyệt';
+  document.getElementById('isUpdFltSearch').value = '';
+  const systems = distinctItemSystems(items);
+  document.getElementById('isUpdFltSystem').innerHTML = `<option value="">Tất cả hệ thống</option>` +
+    systems.map(s=>`<option value="${s}">${s}</option>`).join('');
+  renderImportStatusUpdateTable();
+  openModal('importStatusUpdateModal');
+}
+function clearImportStatusUpdateFilters(){
+  document.getElementById('isUpdFltSearch').value = '';
+  document.getElementById('isUpdFltSystem').value = '';
+  renderImportStatusUpdateTable();
+}
+function renderImportStatusUpdateTable(){
+  captureImportStatusUpdateSelections();
+  const items = state.items.filter(i=>i.projectId===importStatusUpdateProjectId);
+  const q = (document.getElementById('isUpdFltSearch').value||'').trim().toLowerCase();
+  const sys = document.getElementById('isUpdFltSystem').value;
+  const filtered = items.filter(it=>{
+    if(q && !((it.name+it.code).toLowerCase().includes(q))) return false;
+    if(sys && (it.system||'') !== sys) return false;
+    return true;
+  });
+  const tbody = document.getElementById('isUpdTableBody');
+  if(filtered.length === 0){
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:16px; color:var(--steel-500); font-size:12px;">Không có hàng hóa nào khớp bộ lọc.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map(it=>{
+    const checked = importStatusUpdateSelections[it.id] || false;
+    return `
+      <tr>
+        <td class="center"><input type="checkbox" class="isUpdCheck" data-item="${it.id}" ${checked?'checked':''}></td>
+        <td>
+          <div class="row-name">${it.name}</div>
+          <div class="row-code">${it.code||''}</div>
+        </td>
+        <td>${it.system||'—'}</td>
+        <td><span class="stamp ${importStatusStampClass(it.importStatus)}">${it.importStatus||'Chờ duyệt'}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+function submitImportStatusUpdate(){
+  captureImportStatusUpdateSelections();
+  const newStatus = document.getElementById('isUpdStatus').value;
+  let count = 0;
+  const updatedItems = [];
+  Object.keys(importStatusUpdateSelections).forEach(itemId=>{
+    if(!importStatusUpdateSelections[itemId]) return;
+    const it = state.items.find(i=>i.id===itemId);
+    if(!it) return;
+    it.importStatus = newStatus;
+    touch(it);
+    updatedItems.push(it);
+    count++;
+  });
+  if(count === 0){ toast('Vui lòng chọn ít nhất 1 hàng hóa.', true); return; }
+  fbBulkPut('items', updatedItems);
+  saveState();
+  closeModal('importStatusUpdateModal');
+  renderMain();
+  toast(`Đã cập nhật tiến độ nhập hàng cho ${count} hàng hóa.`);
 }
 
 /* ================= DELIVERY LIST / FILTER / EXPORT ================= */
