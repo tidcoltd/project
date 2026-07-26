@@ -747,6 +747,18 @@
         <div class="field"><label>Ngày đặt</label><input type="date" id="poUpdDate"></div>
         <div class="field"></div>
       </div>
+      <div class="subhead">Lọc hàng hóa để chọn nhanh</div>
+      <div class="filter-bar" style="margin-bottom:12px;">
+        <div class="field" style="min-width:200px;">
+          <label>Tìm kiếm</label>
+          <input id="poUpdFltSearch" placeholder="Tên sản phẩm / mã hàng..." oninput="renderPOUpdateTable()">
+        </div>
+        <div class="field" style="min-width:170px;">
+          <label>Hệ thống</label>
+          <select id="poUpdFltSystem" onchange="renderPOUpdateTable()"><option value="">Tất cả hệ thống</option></select>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="align-self:flex-end;" onclick="clearPOUpdateFilters()">Xóa lọc</button>
+      </div>
       <div class="subhead">Chọn hàng hóa &amp; số lượng đặt PO</div>
       <table class="mini-table" id="poUpdTable">
         <thead><tr><th style="width:28px;"></th><th>Sản phẩm</th><th>Hệ thống</th><th class="num">SL hợp đồng</th><th class="num">SL PO đã đặt</th><th class="num" style="width:120px;">SL đặt đợt này</th></tr></thead>
@@ -1870,18 +1882,60 @@ function submitDeliveryUpdate(){
   toast(`Đã cập nhật giao hàng cho ${count} hàng hóa.`);
 }
 
+let poUpdateProjectId = null;
+let poUpdateSelections = {};
+
+function capturePOUpdateSelections(){
+  document.querySelectorAll('#poUpdTableBody tr').forEach(tr=>{
+    const cb = tr.querySelector('.poUpdCheck');
+    const qtyInput = tr.querySelector('.poUpdQty');
+    if(!cb) return;
+    const itemId = cb.dataset.item;
+    poUpdateSelections[itemId] = { checked: cb.checked, qty: qtyInput.value };
+  });
+}
 function openPOUpdateModal(projectId){
   if(!can('managePO')){ toast('Bạn không có quyền cập nhật PO đặt hàng.', true); return; }
   const items = state.items.filter(i=>i.projectId===projectId);
   if(items.length === 0){ toast('Dự án chưa có hàng hóa nào để cập nhật PO.', true); return; }
+  poUpdateProjectId = projectId;
+  poUpdateSelections = {};
   document.getElementById('poUpdProjectId').value = projectId;
   document.getElementById('poUpdCode').value = '';
   document.getElementById('poUpdDate').value = '';
-  document.getElementById('poUpdTableBody').innerHTML = items.map(it=>{
+  document.getElementById('poUpdFltSearch').value = '';
+  const systems = distinctItemSystems(items);
+  document.getElementById('poUpdFltSystem').innerHTML = `<option value="">Tất cả hệ thống</option>` +
+    systems.map(s=>`<option value="${s}">${s}</option>`).join('');
+  renderPOUpdateTable();
+  openModal('poUpdateModal');
+}
+function clearPOUpdateFilters(){
+  document.getElementById('poUpdFltSearch').value = '';
+  document.getElementById('poUpdFltSystem').value = '';
+  renderPOUpdateTable();
+}
+function renderPOUpdateTable(){
+  capturePOUpdateSelections();
+  const items = state.items.filter(i=>i.projectId===poUpdateProjectId);
+  const q = (document.getElementById('poUpdFltSearch').value||'').trim().toLowerCase();
+  const sys = document.getElementById('poUpdFltSystem').value;
+  const filtered = items.filter(it=>{
+    if(q && !((it.name+it.code).toLowerCase().includes(q))) return false;
+    if(sys && (it.system||'') !== sys) return false;
+    return true;
+  });
+  const tbody = document.getElementById('poUpdTableBody');
+  if(filtered.length === 0){
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:16px; color:var(--steel-500); font-size:12px;">Không có hàng hóa nào khớp bộ lọc.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map(it=>{
     const poQty = itemPOTotal(it.id);
+    const sel = poUpdateSelections[it.id] || {checked:false, qty:''};
     return `
       <tr>
-        <td class="center"><input type="checkbox" class="poUpdCheck" data-item="${it.id}"></td>
+        <td class="center"><input type="checkbox" class="poUpdCheck" data-item="${it.id}" ${sel.checked?'checked':''}></td>
         <td>
           <div class="row-name">${it.name}</div>
           <div class="row-code">${it.code||''}</div>
@@ -1889,23 +1943,21 @@ function openPOUpdateModal(projectId){
         <td>${it.system||'—'}</td>
         <td class="num">${fmtNum(it.qty)} ${it.unit||''}</td>
         <td class="num">${fmtNum(poQty)} ${it.unit||''}</td>
-        <td class="num"><input type="number" min="0" step="any" class="poUpdQty" data-item="${it.id}" style="width:100px; text-align:right;" placeholder="0"></td>
+        <td class="num"><input type="number" min="0" step="any" class="poUpdQty" data-item="${it.id}" value="${sel.qty}" style="width:100px; text-align:right;" placeholder="0"></td>
       </tr>
     `;
   }).join('');
-  openModal('poUpdateModal');
 }
 function submitPOUpdate(){
+  capturePOUpdateSelections();
   const poCode = document.getElementById('poUpdCode').value.trim() || 'PO đặt hàng';
   const date = document.getElementById('poUpdDate').value;
-  const rows = document.querySelectorAll('#poUpdTableBody tr');
   let count = 0;
   const newPOs = [];
-  rows.forEach(tr=>{
-    const checked = tr.querySelector('.poUpdCheck').checked;
-    const qty = Number(tr.querySelector('.poUpdQty').value) || 0;
-    const itemId = tr.querySelector('.poUpdCheck').dataset.item;
-    if(checked && qty > 0){
+  Object.keys(poUpdateSelections).forEach(itemId=>{
+    const sel = poUpdateSelections[itemId];
+    const qty = Number(sel.qty) || 0;
+    if(sel.checked && qty > 0){
       const newPO = touch({id:uid('po'), itemId, poCode, date, qty});
       state.poBatches.push(newPO);
       newPOs.push(newPO);
