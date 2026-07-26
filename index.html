@@ -717,6 +717,18 @@
         <div class="field"><label>Ngày giao</label><input type="date" id="dvUpdDate"></div>
         <div class="field"><label>Ghi chú chung</label><input id="dvUpdNote" placeholder="Số vận đơn / ghi chú"></div>
       </div>
+      <div class="subhead">Lọc hàng hóa để chọn nhanh</div>
+      <div class="filter-bar" style="margin-bottom:12px;">
+        <div class="field" style="min-width:200px;">
+          <label>Tìm kiếm</label>
+          <input id="dvUpdFltSearch" placeholder="Tên sản phẩm / mã hàng..." oninput="renderDeliveryUpdateTable()">
+        </div>
+        <div class="field" style="min-width:170px;">
+          <label>Hệ thống</label>
+          <select id="dvUpdFltSystem" onchange="renderDeliveryUpdateTable()"><option value="">Tất cả hệ thống</option></select>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="align-self:flex-end;" onclick="clearDeliveryUpdateFilters()">Xóa lọc</button>
+      </div>
       <div class="subhead">Chọn hàng hóa &amp; số lượng giao</div>
       <table class="mini-table" id="dvUpdTable">
         <thead><tr><th style="width:28px;"></th><th>Sản phẩm</th><th>Hệ thống</th><th class="num">SL còn lại</th><th class="num" style="width:120px;">SL giao đợt này</th></tr></thead>
@@ -1828,46 +1840,85 @@ function confirmImport(){
 }
 
 /* ================= BULK DELIVERY UPDATE ================= */
+let deliveryUpdateProjectId = null;
+let deliveryUpdateSelections = {};
+
+function captureDeliveryUpdateSelections(){
+  document.querySelectorAll('#dvUpdTableBody tr').forEach(tr=>{
+    const cb = tr.querySelector('.dvUpdCheck');
+    const qtyInput = tr.querySelector('.dvUpdQty');
+    if(!cb) return;
+    const itemId = cb.dataset.item;
+    deliveryUpdateSelections[itemId] = { checked: cb.checked, qty: qtyInput.value };
+  });
+}
 function openDeliveryUpdateModal(projectId){
   if(!can('manageDeliveries')){ toast('Bạn không có quyền cập nhật giao hàng.', true); return; }
   const items = state.items.filter(i=>i.projectId===projectId);
   if(items.length === 0){ toast('Dự án chưa có hàng hóa nào để cập nhật giao hàng.', true); return; }
+  deliveryUpdateProjectId = projectId;
+  deliveryUpdateSelections = {};
   document.getElementById('dvUpdProjectId').value = projectId;
   document.getElementById('dvUpdBatch').value = '';
   document.getElementById('dvUpdDate').value = '';
   document.getElementById('dvUpdNote').value = '';
-  document.getElementById('dvUpdTableBody').innerHTML = items.map(it=>{
+  document.getElementById('dvUpdFltSearch').value = '';
+  const systems = distinctItemSystems(items);
+  document.getElementById('dvUpdFltSystem').innerHTML = `<option value="">Tất cả hệ thống</option>` +
+    systems.map(s=>`<option value="${s}">${s}</option>`).join('');
+  renderDeliveryUpdateTable();
+  openModal('deliveryUpdateModal');
+}
+function clearDeliveryUpdateFilters(){
+  document.getElementById('dvUpdFltSearch').value = '';
+  document.getElementById('dvUpdFltSystem').value = '';
+  renderDeliveryUpdateTable();
+}
+function renderDeliveryUpdateTable(){
+  captureDeliveryUpdateSelections();
+  const items = state.items.filter(i=>i.projectId===deliveryUpdateProjectId);
+  const q = (document.getElementById('dvUpdFltSearch').value||'').trim().toLowerCase();
+  const sys = document.getElementById('dvUpdFltSystem').value;
+  const filtered = items.filter(it=>{
+    if(q && !((it.name+it.code).toLowerCase().includes(q))) return false;
+    if(sys && (it.system||'') !== sys) return false;
+    return true;
+  });
+  const tbody = document.getElementById('dvUpdTableBody');
+  if(filtered.length === 0){
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--steel-500); font-size:12px;">Không có hàng hóa nào khớp bộ lọc.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map(it=>{
     const delivered = itemDeliveredQty(it.id);
     const poQty = itemPOTotal(it.id);
     const remaining = poQty - delivered;
+    const sel = deliveryUpdateSelections[it.id] || {checked:false, qty:''};
     return `
       <tr>
-        <td class="center"><input type="checkbox" class="dvUpdCheck" data-item="${it.id}"></td>
+        <td class="center"><input type="checkbox" class="dvUpdCheck" data-item="${it.id}" ${sel.checked?'checked':''}></td>
         <td>
           <div class="row-name">${it.name}</div>
           <div class="row-code">${it.code||''}</div>
         </td>
         <td>${it.system||'—'}</td>
         <td class="num">${fmtNum(remaining)} ${it.unit||''}</td>
-        <td class="num"><input type="number" min="0" step="any" class="dvUpdQty" data-item="${it.id}" style="width:100px; text-align:right;" placeholder="0"></td>
+        <td class="num"><input type="number" min="0" step="any" class="dvUpdQty" data-item="${it.id}" value="${sel.qty}" style="width:100px; text-align:right;" placeholder="0"></td>
       </tr>
     `;
   }).join('');
-  openModal('deliveryUpdateModal');
 }
 function submitDeliveryUpdate(){
-  const projectId = document.getElementById('dvUpdProjectId').value;
+  captureDeliveryUpdateSelections();
   const batchNo = document.getElementById('dvUpdBatch').value.trim() || 'Đợt giao hàng';
   const date = document.getElementById('dvUpdDate').value;
   const note = document.getElementById('dvUpdNote').value.trim();
-  const rows = document.querySelectorAll('#dvUpdTableBody tr');
   let count = 0;
   const newDeliveries = [];
-  rows.forEach(tr=>{
-    const checked = tr.querySelector('.dvUpdCheck').checked;
-    const qty = Number(tr.querySelector('.dvUpdQty').value) || 0;
-    const itemId = tr.querySelector('.dvUpdCheck').dataset.item;
-    if(checked && qty > 0){
+  Object.keys(deliveryUpdateSelections).forEach(itemId=>{
+    const sel = deliveryUpdateSelections[itemId];
+    const qty = Number(sel.qty) || 0;
+    if(sel.checked && qty > 0){
       const newDv = touch({id:uid('dv'), itemId, batchNo, date, qty, note});
       state.deliveries.push(newDv);
       newDeliveries.push(newDv);
