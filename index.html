@@ -707,6 +707,17 @@ const STORAGE_KEY = 'tid_goods_tracker_v1';
 
 function uid(prefix){ return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyB8dXWSWszrtqElyVCmQ01vIB27XR5L210",
+  authDomain: "tid-coltd.firebaseapp.com",
+  databaseURL: "https://tid-coltd-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "tid-coltd",
+  storageBucket: "tid-coltd.firebasestorage.app",
+  messagingSenderId: "1097776308876",
+  appId: "1:1097776308876:web:c56830ae770912bb4b51a9",
+  measurementId: "G-ZTWQM7911H"
+};
+
 function defaultState(){
   const demoProjId = uid('pj');
   const itemId1 = uid('it');
@@ -734,7 +745,7 @@ function defaultState(){
     payments: [
       {id:uid('pm'), projectId:demoProjId, batchNo:'Đợt 1', date:'2026-05-01', amount:100000000, note:'Tạm ứng theo hợp đồng'},
     ],
-    firebase: {config:null, enabled:false},
+    firebase: {config: DEFAULT_FIREBASE_CONFIG, enabled:true},
     permissions: defaultPermissions(),
     deletedIds: {projects:[], items:[], poBatches:[], deliveries:[], payments:[], users:[]},
     session: {userId:null},
@@ -755,6 +766,10 @@ let state = loadState() || defaultState();
 if(!state.ui) state.ui = {currentProjectId: (state.projects[0]||{}).id || null};
 if(!state.ui.itemFilters) state.ui.itemFilters = {search:'', system:'', status:'', delivery:''};
 if(!state.firebase) state.firebase = {config:null, enabled:false};
+if(!state.firebase.config){
+  state.firebase.config = DEFAULT_FIREBASE_CONFIG;
+  state.firebase.enabled = true;
+}
 if(!state.permissions) state.permissions = defaultPermissions();
 if(!state.payments) state.payments = [];
 if(!state.deletedIds) state.deletedIds = {projects:[], items:[], poBatches:[], deliveries:[], payments:[], users:[]};
