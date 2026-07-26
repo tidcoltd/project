@@ -1256,6 +1256,7 @@ function renderMain(){
         ${can('manageItems') ? `<button class="btn btn-ghost btn-sm" onclick="openImportStatusUpdateModal('${proj.id}')">📥 Cập nhật Tiến độ nhập hàng</button>` : ''}
         <button class="btn btn-ghost btn-sm" onclick="openDeliveryListModal('${proj.id}')">📦 Đợt giao hàng</button>
         ${can('manageItems') ? `<button class="btn btn-ghost btn-sm" onclick="openImportModal('${proj.id}')">⇪ Nhập từ Excel</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="exportItemsExcel('${proj.id}')">⇩ Xuất Excel</button>
         ${can('manageItems') ? `<button class="btn btn-primary btn-sm" onclick="openItemModal(null,'${proj.id}')">+ Thêm hàng hóa</button>` : ''}
       </div>
     </div>
@@ -1296,13 +1297,15 @@ function renderDashboardView(main){
   const rows = state.projects.map(p=>{
     const items = state.items.filter(i=>i.projectId===p.id);
     const contractValue = sum(items, i=>i.qty*itemUnitPriceVat(i));
+    const poValue = sum(items, i=>itemPOTotal(i.id)*itemUnitPriceVat(i));
     const deliveredValue = sum(items, i=>itemDeliveredValue(i.id, itemUnitPriceVat(i)));
     const paid = projectPaidTotal(p.id);
     const remainingUnpaid = deliveredValue - paid;
-    return {p, contractValue, deliveredValue, remainingUnpaid};
+    return {p, contractValue, poValue, deliveredValue, remainingUnpaid};
   });
 
   const grandContract = sum(rows, r=>r.contractValue);
+  const grandPOValue = sum(rows, r=>r.poValue);
   const grandDelivered = sum(rows, r=>r.deliveredValue);
   const grandRemainingUnpaid = sum(rows, r=>r.remainingUnpaid);
 
@@ -1314,6 +1317,7 @@ function renderDashboardView(main){
     <div class="stat-row">
       <div class="stat-card"><div class="lbl">Số dự án</div><div class="val">${state.projects.length}</div></div>
       <div class="stat-card"><div class="lbl">Tổng giá trị hợp đồng</div><div class="val">${fmtMoney(grandContract)}</div></div>
+      <div class="stat-card"><div class="lbl">Tổng giá trị PO đặt hàng</div><div class="val">${fmtMoney(grandPOValue)}</div></div>
       <div class="stat-card"><div class="lbl">Tổng giá trị đã giao</div><div class="val">${fmtMoney(grandDelivered)}</div></div>
       <div class="stat-card ${grandRemainingUnpaid>0?'stat-card-warn':'stat-card-ok'}"><div class="lbl">Tổng còn lại chưa thanh toán</div><div class="val">${fmtMoney(grandRemainingUnpaid)}</div></div>
     </div>
@@ -1328,6 +1332,7 @@ function renderDashboardView(main){
           <th style="width:44px;">STT</th>
           <th>Dự án</th>
           <th class="num">Giá trị hợp đồng</th>
+          <th class="num">Giá trị PO đặt hàng</th>
           <th class="num">Giá trị đã giao</th>
           <th class="num">Còn lại chưa thanh toán</th>
           <th>Trạng thái dự án</th>
@@ -1343,6 +1348,7 @@ function renderDashboardView(main){
               <div class="row-code">${r.p.code||''}</div>
             </td>
             <td class="num">${fmtMoney(r.contractValue)}</td>
+            <td class="num">${fmtMoney(r.poValue)}</td>
             <td class="num">${fmtMoney(r.deliveredValue)}</td>
             <td class="num" style="${r.remainingUnpaid>0?'color:var(--red-600);':'color:var(--green-600);'}">${fmtMoney(r.remainingUnpaid)}</td>
             <td><span class="stamp ${projStatusStampClass(r.p.status)}">${r.p.status}</span></td>
@@ -1901,6 +1907,35 @@ function confirmImport(){
   renderMain();
   toast(`Đã nhập ${importParsedRows.length} hàng hóa từ Excel.`);
   importParsedRows = [];
+}
+
+function exportItemsExcel(projectId){
+  const proj = state.projects.find(p=>p.id===projectId);
+  const items = state.items.filter(i=>i.projectId===projectId);
+  if(items.length === 0){ toast('Dự án chưa có hàng hóa nào để xuất.', true); return; }
+  const aoa = [
+    ['STT','Tên sản phẩm','Hệ thống','Thương hiệu','Xuất xứ','Mã hàng','Thông số kỹ thuật',
+     'SL hợp đồng','Đơn vị tính','Đơn giá','VAT (%)','Thành tiền',
+     'SL PO đặt hàng','SL đã giao','SL còn lại','Tình trạng T&C','Tiến độ nhập hàng','Chứng từ cung cấp']
+  ];
+  items.forEach((it, idx)=>{
+    const poQty = itemPOTotal(it.id);
+    const delivered = itemDeliveredQty(it.id);
+    const remaining = poQty - delivered;
+    const total = it.qty * itemUnitPriceVat(it);
+    aoa.push([
+      idx+1, it.name, it.system||'', it.brand||'', it.origin||'', it.code||'', it.spec||'',
+      it.qty, it.unit||'', it.price, it.vat||0, total,
+      poQty, delivered, remaining, it.status||'', it.importStatus||'', it.doc||''
+    ]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = aoa[0].map(()=>({wch:18}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Hang hoa');
+  const fileName = `hang-hoa${proj ? '-'+proj.code.replace(/[^\w-]/g,'') : ''}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+  toast('Đã xuất file Excel toàn bộ hàng hóa.');
 }
 
 /* ================= BULK DELIVERY UPDATE ================= */
