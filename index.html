@@ -412,7 +412,7 @@
         <input type="password" id="loginPass" placeholder="Nhập mật khẩu">
       </div>
       <button class="btn btn-primary btn-block" onclick="handleLogin()">Đăng nhập</button>
-      <div class="login-hint">Tài khoản mẫu: <b>admin</b> / mật khẩu <b>admin123</b> (vai trò Admin). Vào mục Người dùng sau khi đăng nhập để thêm tài khoản Sales / Kế toán / Viewer.</div>
+      <div class="login-hint">Vui lòng chọn tài khoản và nhập mật khẩu đã cung cấp để truy cập phần mềm.</div>
       <div style="text-align:center; margin-top:16px;"><a href="#" onclick="backToModuleHub(); return false;" style="font-size:12px; color:var(--steel-500); text-decoration:none;">← Chọn phần mềm khác</a></div>
     </div>
   </div>
@@ -527,7 +527,8 @@
         <div class="field"><label>Đơn vị tính</label><input id="itUnit" placeholder="cái / bộ / m..."></div>
         <div class="field"><label>Đơn giá (VNĐ)</label><input type="number" min="0" step="any" id="itPrice" oninput="recalcItemTotal()"></div>
       </div>
-      <div class="field"><label>Thành tiền (tự động = SL hợp đồng × Đơn giá)</label><input id="itTotal" class="mono locked-field" readonly></div>
+      <div class="field"><label>VAT (%)</label><input type="number" min="0" step="any" id="itVat" placeholder="VD: 8, 10" oninput="recalcItemTotal()"></div>
+      <div class="field"><label>Thành tiền (tự động = SL hợp đồng × (Đơn giá + VAT))</label><input id="itTotal" class="mono locked-field" readonly></div>
       <div class="grid-2">
         <div class="field"><label>Chứng từ cung cấp</label><input id="itDoc" placeholder="VD: CO/CQ, Invoice số..., Packing list..."></div>
         <div class="field"><label>Tình trạng T&amp;C (tiến độ / chất lượng)</label>
@@ -964,8 +965,8 @@ function defaultState(){
       {id:demoProjId, code:'[MẪU]-2026-001', name:'Dự án mẫu — Nhà máy xử lý nước ABC', client:'Công ty CP ABC', system:'Hệ thống xử lý nước thải', status:'Đang triển khai', progress:'Đang lắp đặt thiết bị', progressPct:60, note:'Dự án mẫu để tham khảo, có thể xóa.'}
     ],
     items: [
-      {id:itemId1, projectId:demoProjId, name:'Máy bơm ly tâm trục ngang', code:'PUMP-CN-050', system:'Hệ thống cơ khí', brand:'Grundfos', origin:'Đan Mạch', spec:'Q=50m3/h, H=32m, 3 pha, 380V, IP55', qty:4, unit:'bộ', price:38500000, doc:'CO/CQ, Invoice INV-0021', status:'Đang giao hàng', importStatus:'Kho SG'},
-      {id:itemId2, projectId:demoProjId, name:'Ống thép mạ kẽm D114', code:'PIPE-GS-114', system:'Hệ thống cấp thoát nước', brand:'Hoa Sen', origin:'Việt Nam', spec:'D114mm, dày 4.5mm, TCVN 6117', qty:800, unit:'m', price:295000, doc:'CO/CQ, Packing list PL-0012', status:'Đã giao đủ', importStatus:'Kho SG'},
+      {id:itemId1, projectId:demoProjId, name:'Máy bơm ly tâm trục ngang', code:'PUMP-CN-050', system:'Hệ thống cơ khí', brand:'Grundfos', origin:'Đan Mạch', spec:'Q=50m3/h, H=32m, 3 pha, 380V, IP55', qty:4, unit:'bộ', price:38500000, vat:8, doc:'CO/CQ, Invoice INV-0021', status:'Đang giao hàng', importStatus:'Kho SG'},
+      {id:itemId2, projectId:demoProjId, name:'Ống thép mạ kẽm D114', code:'PIPE-GS-114', system:'Hệ thống cấp thoát nước', brand:'Hoa Sen', origin:'Việt Nam', spec:'D114mm, dày 4.5mm, TCVN 6117', qty:800, unit:'m', price:295000, vat:10, doc:'CO/CQ, Packing list PL-0012', status:'Đã giao đủ', importStatus:'Kho SG'},
     ],
     poBatches: [
       {id:uid('po'), itemId:itemId1, poCode:'PO-2026-014', date:'2026-05-10', qty:4},
@@ -1015,7 +1016,7 @@ function markDeleted(table, id){
 }
 function touch(record){ record.updatedAt = Date.now(); return record; }
 state.projects.forEach(p=>{ if(p.system===undefined) p.system=''; if(p.progress===undefined) p.progress='Chưa khởi công'; if(p.progressPct===undefined) p.progressPct=0; });
-state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; });
+state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; if(i.vat===undefined) i.vat=0; });
 
 /* ================= PERMISSIONS ================= */
 function currentUser(){ return state.users.find(u => u.id === state.session.userId); }
@@ -1066,6 +1067,7 @@ function sum(arr, fn){ return arr.reduce((a,x)=>a+(Number(fn(x))||0),0); }
 function itemPOTotal(itemId){ return sum(state.poBatches.filter(p=>p.itemId===itemId), p=>p.qty); }
 function itemDeliveredQty(itemId){ return sum(state.deliveries.filter(d=>d.itemId===itemId), d=>d.qty); }
 function itemDeliveredValue(itemId, price){ return itemDeliveredQty(itemId) * price; }
+function itemUnitPriceVat(it){ return (Number(it.price)||0) * (1 + (Number(it.vat)||0)/100); }
 function projectPaidTotal(projectId){ return sum(state.payments.filter(p=>p.projectId===projectId), p=>p.amount); }
 function statusStampClass(status){
   const map = {
@@ -1224,8 +1226,8 @@ function renderMain(){
     return;
   }
   const items = state.items.filter(i=>i.projectId===proj.id);
-  const totalContractValue = sum(items, i=>i.qty*i.price);
-  const totalDeliveredValue = sum(items, i=>itemDeliveredValue(i.id, i.price));
+  const totalContractValue = sum(items, i=>i.qty*itemUnitPriceVat(i));
+  const totalDeliveredValue = sum(items, i=>itemDeliveredValue(i.id, itemUnitPriceVat(i)));
   const totalRemainingQty = sum(items, i=>itemPOTotal(i.id) - itemDeliveredQty(i.id));
   const paidTotal = projectPaidTotal(proj.id);
   const remainingUnpaid = totalDeliveredValue - paidTotal;
@@ -1291,8 +1293,8 @@ function renderDashboardView(main){
 
   const rows = state.projects.map(p=>{
     const items = state.items.filter(i=>i.projectId===p.id);
-    const contractValue = sum(items, i=>i.qty*i.price);
-    const deliveredValue = sum(items, i=>itemDeliveredValue(i.id, i.price));
+    const contractValue = sum(items, i=>i.qty*itemUnitPriceVat(i));
+    const deliveredValue = sum(items, i=>itemDeliveredValue(i.id, itemUnitPriceVat(i)));
     const paid = projectPaidTotal(p.id);
     const remainingUnpaid = deliveredValue - paid;
     return {p, contractValue, deliveredValue, remainingUnpaid};
@@ -1461,6 +1463,7 @@ function renderItemsTable(){
           <th>Xuất xứ</th>
           <th class="num">SL hợp đồng</th>
           <th class="num">Đơn giá</th>
+          <th class="num">VAT (%)</th>
           <th class="num">Thành tiền</th>
           <th class="num">SL PO</th>
           <th>Tiến độ giao hàng</th>
@@ -1479,7 +1482,7 @@ function renderItemsTable(){
 }
 
 function rowHtml(it, stt){
-  const total = it.qty * it.price;
+  const total = it.qty * itemUnitPriceVat(it);
   const poQty = itemPOTotal(it.id);
   const delivered = itemDeliveredQty(it.id);
   const remaining = poQty - delivered;
@@ -1498,6 +1501,7 @@ function rowHtml(it, stt){
       <td style="font-size:12.5px;">${it.origin||'—'}</td>
       <td class="num">${fmtNum(it.qty)} <span style="color:var(--steel-500); font-size:11px;">${it.unit||''}</span></td>
       <td class="num">${fmtMoney(it.price)}</td>
+      <td class="num">${fmtNum(it.vat||0)}%</td>
       <td class="num">${fmtMoney(total)}</td>
       <td class="num">${fmtNum(poQty)}</td>
       <td>
@@ -1593,13 +1597,15 @@ function deleteProject(id){
 function recalcItemTotal(){
   const qty = Number(document.getElementById('itQty').value)||0;
   const price = Number(document.getElementById('itPrice').value)||0;
-  document.getElementById('itTotal').value = fmtMoney(qty*price) + ' VNĐ';
+  const vat = Number(document.getElementById('itVat').value)||0;
+  const priceWithVat = price * (1 + vat/100);
+  document.getElementById('itTotal').value = fmtMoney(qty*priceWithVat) + ' VNĐ';
 }
 function openItemModal(id, projectId){
   if(!can('manageItems')){ toast('Bạn không có quyền thao tác hàng hóa.', true); return; }
   const isEdit = !!id;
   document.getElementById('itemModalTitle').textContent = isEdit ? 'Sửa hàng hóa' : 'Hàng hóa mới';
-  const it = isEdit ? state.items.find(x=>x.id===id) : {id:'',projectId:projectId||state.ui.currentProjectId,name:'',code:'',system:'',brand:'',origin:'',spec:'',qty:0,unit:'',price:0,doc:'',status:'Chưa triển khai',importStatus:'Chờ duyệt'};
+  const it = isEdit ? state.items.find(x=>x.id===id) : {id:'',projectId:projectId||state.ui.currentProjectId,name:'',code:'',system:'',brand:'',origin:'',spec:'',qty:0,unit:'',price:0,vat:0,doc:'',status:'Chưa triển khai',importStatus:'Chờ duyệt'};
   document.getElementById('itId').value = it.id;
   document.getElementById('itId').dataset.projectId = it.projectId;
   document.getElementById('itName').value = it.name;
@@ -1611,6 +1617,7 @@ function openItemModal(id, projectId){
   document.getElementById('itQty').value = it.qty;
   document.getElementById('itUnit').value = it.unit;
   document.getElementById('itPrice').value = it.price;
+  document.getElementById('itVat').value = it.vat||0;
   document.getElementById('itDoc').value = it.doc;
   document.getElementById('itStatus').value = it.status;
   document.getElementById('itImportStatus').value = it.importStatus||'Chờ duyệt';
@@ -1618,11 +1625,13 @@ function openItemModal(id, projectId){
 
   const financeLocked = !can('editFinance');
   document.getElementById('itPrice').readOnly = financeLocked;
+  document.getElementById('itVat').readOnly = financeLocked;
   document.getElementById('itDoc').readOnly = financeLocked;
   document.getElementById('itPrice').classList.toggle('locked-field', financeLocked);
+  document.getElementById('itVat').classList.toggle('locked-field', financeLocked);
   document.getElementById('itDoc').classList.toggle('locked-field', financeLocked);
   document.getElementById('itemFieldNote').textContent = financeLocked
-    ? 'Đơn giá và Chứng từ cung cấp chỉ Admin / Kế toán được chỉnh sửa.'
+    ? 'Đơn giá, VAT và Chứng từ cung cấp chỉ Admin / Kế toán được chỉnh sửa.'
     : '';
   openModal('itemModal');
 }
@@ -1645,13 +1654,14 @@ function saveItem(){
   };
   if(can('editFinance')){
     payload.price = Number(document.getElementById('itPrice').value)||0;
+    payload.vat = Number(document.getElementById('itVat').value)||0;
     payload.doc = document.getElementById('itDoc').value.trim();
   }
   if(id){
     const it = touch(Object.assign(state.items.find(x=>x.id===id), payload));
     fbPut('items', it);
   } else {
-    const newIt = touch(Object.assign({id:uid('it'), projectId, price:0, doc:''}, payload));
+    const newIt = touch(Object.assign({id:uid('it'), projectId, price:0, vat:0, doc:''}, payload));
     state.items.push(newIt);
     fbPut('items', newIt);
   }
@@ -1691,7 +1701,7 @@ function renderDetailModal(){
   const poQty = itemPOTotal(it.id);
   const delivered = itemDeliveredQty(it.id);
   const remaining = poQty - delivered;
-  const deliveredValue = itemDeliveredValue(it.id, it.price);
+  const deliveredValue = itemDeliveredValue(it.id, itemUnitPriceVat(it));
 
   document.getElementById('detailStats').innerHTML = `
     <div class="stat-card"><div class="lbl">SL hợp đồng</div><div class="val">${fmtNum(it.qty)} ${it.unit||''}</div></div>
@@ -1720,7 +1730,7 @@ function renderDetailModal(){
       <td>${d.batchNo||'—'}</td>
       <td>${d.date||'—'}</td>
       <td class="num">${fmtNum(d.qty)}</td>
-      <td class="num">${fmtMoney(d.qty * it.price)}</td>
+      <td class="num">${fmtMoney(d.qty * itemUnitPriceVat(it))}</td>
       <td>${d.note||''}</td>
       <td>${can('manageDeliveries') ? `<button class="icon-link" onclick="removeDelivery('${d.id}')">Xóa</button>` : ''}</td>
     </tr>
@@ -1778,13 +1788,13 @@ function removeDelivery(id){
 }
 
 /* ================= IMPORT FROM EXCEL ================= */
-const IMPORT_HEADERS = ['Tên sản phẩm','Hệ thống','Thương hiệu','Xuất xứ','Mã hàng','Thông số kỹ thuật','Số lượng','Đơn vị tính','Đơn giá','Chứng từ cung cấp','Tình trạng T&C','Tiến độ nhập hàng'];
+const IMPORT_HEADERS = ['Tên sản phẩm','Hệ thống','Thương hiệu','Xuất xứ','Mã hàng','Thông số kỹ thuật','Số lượng','Đơn vị tính','Đơn giá','VAT (%)','Chứng từ cung cấp','Tình trạng T&C','Tiến độ nhập hàng'];
 let importParsedRows = [];
 
 function downloadImportTemplate(){
   const ws = XLSX.utils.aoa_to_sheet([
     IMPORT_HEADERS,
-    ['Máy bơm ly tâm trục ngang','Hệ thống cơ khí','Grundfos','Đan Mạch','PUMP-CN-050','Q=50m3/h, H=32m, 3 pha, 380V','4','bộ','38500000','CO/CQ, Invoice INV-0021','Đang giao hàng','Chờ duyệt'],
+    ['Máy bơm ly tâm trục ngang','Hệ thống cơ khí','Grundfos','Đan Mạch','PUMP-CN-050','Q=50m3/h, H=32m, 3 pha, 380V','4','bộ','38500000','8','CO/CQ, Invoice INV-0021','Đang giao hàng','Chờ duyệt'],
   ]);
   ws['!cols'] = IMPORT_HEADERS.map(()=>({wch:22}));
   const wb = XLSX.utils.book_new();
@@ -1847,9 +1857,9 @@ function renderImportPreview(){
   document.getElementById('importSummary').textContent = `Tìm thấy ${importParsedRows.length} dòng hàng hóa hợp lệ. Kiểm tra nhanh 5 dòng đầu bên dưới trước khi nhập.`;
   const preview = importParsedRows.slice(0,5);
   document.getElementById('importPreviewTable').innerHTML = `
-    <thead><tr><th>Tên sản phẩm</th><th>Hệ thống</th><th>Thương hiệu</th><th>Xuất xứ</th><th>Mã hàng</th><th class="num">Số lượng</th><th class="num">Đơn giá</th></tr></thead>
+    <thead><tr><th>Tên sản phẩm</th><th>Hệ thống</th><th>Thương hiệu</th><th>Xuất xứ</th><th>Mã hàng</th><th class="num">Số lượng</th><th class="num">Đơn giá</th><th class="num">VAT (%)</th></tr></thead>
     <tbody>
-      ${preview.map(r=>`<tr><td>${r['Tên sản phẩm']||''}</td><td>${r['Hệ thống']||''}</td><td>${r['Thương hiệu']||''}</td><td>${r['Xuất xứ']||''}</td><td>${r['Mã hàng']||''}</td><td class="num">${fmtNum(r['Số lượng'])}</td><td class="num">${fmtMoney(r['Đơn giá'])}</td></tr>`).join('')}
+      ${preview.map(r=>`<tr><td>${r['Tên sản phẩm']||''}</td><td>${r['Hệ thống']||''}</td><td>${r['Thương hiệu']||''}</td><td>${r['Xuất xứ']||''}</td><td>${r['Mã hàng']||''}</td><td class="num">${fmtNum(r['Số lượng'])}</td><td class="num">${fmtMoney(r['Đơn giá'])}</td><td class="num">${fmtNum(r['VAT (%)'])}</td></tr>`).join('')}
     </tbody>
   `;
   btn.disabled = false;
@@ -1875,6 +1885,7 @@ function confirmImport(){
       qty: Number(r['Số lượng'])||0,
       unit: String(r['Đơn vị tính']||'').trim(),
       price: financeAllowed ? (Number(r['Đơn giá'])||0) : 0,
+      vat: financeAllowed ? (Number(r['VAT (%)'])||0) : 0,
       doc: financeAllowed ? String(r['Chứng từ cung cấp']||'').trim() : '',
       status,
       importStatus,
@@ -2210,7 +2221,7 @@ function getDeliveryListRows(){
 function renderDeliveryListModal(){
   const rows = getDeliveryListRows();
   const totalQty = sum(rows, r=>r.d.qty);
-  const totalValue = sum(rows, r=>r.d.qty * r.it.price);
+  const totalValue = sum(rows, r=>r.d.qty * itemUnitPriceVat(r.it));
   document.getElementById('dlStats').innerHTML = `
     <div class="stat-card"><div class="lbl">Số đợt giao</div><div class="val">${rows.length}</div></div>
     <div class="stat-card"><div class="lbl">Tổng SL đã giao (theo lọc)</div><div class="val">${fmtNum(totalQty)}</div></div>
@@ -2233,7 +2244,7 @@ function renderDeliveryListModal(){
             <td>${d.batchNo||'—'}</td>
             <td>${d.date||'—'}</td>
             <td class="num">${fmtNum(d.qty)} ${it.unit||''}</td>
-            <td class="num">${fmtMoney(d.qty * it.price)}</td>
+            <td class="num">${fmtMoney(d.qty * itemUnitPriceVat(it))}</td>
             <td>${d.note||''}</td>
           </tr>
         `).join('')}
@@ -2246,10 +2257,10 @@ function exportDeliveryExcel(){
   if(rows.length === 0){ toast('Không có dữ liệu đợt giao hàng để xuất.', true); return; }
   const proj = state.projects.find(p=>p.id===deliveryListProjectId);
   const aoa = [
-    ['STT','Sản phẩm','Mã hàng','Hệ thống','Đợt giao','Ngày giao','SL giao','Đơn vị','Đơn giá','Giá trị giao (VNĐ)','Ghi chú']
+    ['STT','Sản phẩm','Mã hàng','Hệ thống','Đợt giao','Ngày giao','SL giao','Đơn vị','Đơn giá','VAT (%)','Giá trị giao (VNĐ)','Ghi chú']
   ];
   rows.forEach(({d,it}, idx)=>{
-    aoa.push([idx+1, it.name, it.code||'', it.system||'', d.batchNo||'', d.date||'', d.qty, it.unit||'', it.price, d.qty*it.price, d.note||'']);
+    aoa.push([idx+1, it.name, it.code||'', it.system||'', d.batchNo||'', d.date||'', d.qty, it.unit||'', it.price, it.vat||0, d.qty*itemUnitPriceVat(it), d.note||'']);
   });
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = aoa[0].map(()=>({wch:18}));
@@ -2276,7 +2287,7 @@ function renderPaymentModal(){
   const proj = state.projects.find(p=>p.id===paymentProjectId);
   if(!proj) return;
   const items = state.items.filter(i=>i.projectId===proj.id);
-  const deliveredValue = sum(items, i=>itemDeliveredValue(i.id, i.price));
+  const deliveredValue = sum(items, i=>itemDeliveredValue(i.id, itemUnitPriceVat(i)));
   const paid = projectPaidTotal(proj.id);
   const remaining = deliveredValue - paid;
 
@@ -2574,7 +2585,7 @@ function attachFirebaseListeners(){
     fbDb.ref('data/'+table).on('value', snap=>{
       const val = snap.val() || {};
       state[table] = Object.keys(val).map(k=>val[k]);
-      if(table==='items') state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; });
+      if(table==='items') state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; if(i.vat===undefined) i.vat=0; });
       saveState();
       refreshOpenViews();
     });
