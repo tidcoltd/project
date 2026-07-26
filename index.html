@@ -412,7 +412,7 @@
         <input type="password" id="loginPass" placeholder="Nhập mật khẩu">
       </div>
       <button class="btn btn-primary btn-block" onclick="handleLogin()">Đăng nhập</button>
-      <div class="login-hint">Vui lòng chọn tài khoản và nhập mật khẩu đã cung cấp để truy cập phần mềm.</div>
+      <div class="login-hint">Tài khoản mẫu: <b>admin</b> / mật khẩu <b>admin123</b> (vai trò Admin). Vào mục Người dùng sau khi đăng nhập để thêm tài khoản Sales / Kế toán / Viewer.</div>
       <div style="text-align:center; margin-top:16px;"><a href="#" onclick="backToModuleHub(); return false;" style="font-size:12px; color:var(--steel-500); text-decoration:none;">← Chọn phần mềm khác</a></div>
     </div>
   </div>
@@ -434,6 +434,7 @@
       <span class="role-badge" id="topUserRole"></span>
     </div>
     <button class="icon-btn" onclick="backToModuleHub()">🧩 Đổi phần mềm</button>
+    <button class="icon-btn" onclick="openChangePasswordModal(currentUser().id, false)">🔑 Đổi mật khẩu</button>
     <button class="icon-btn" onclick="handleLogout()">Đăng xuất</button>
   </div>
   <div id="layout">
@@ -753,6 +754,36 @@
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeModal('poUpdateModal')">Hủy</button>
       <button class="btn btn-primary" onclick="submitPOUpdate()">Lưu cập nhật PO</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="overlay" id="passwordModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="passwordModalTitle">Đổi mật khẩu</h2>
+      <button class="modal-close" onclick="closeModal('passwordModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pwTargetUserId">
+      <div class="permission-note" id="pwNote" style="display:none;"></div>
+      <div class="field" id="pwCurrentWrap">
+        <label>Mật khẩu hiện tại</label>
+        <input type="password" id="pwCurrent" placeholder="Nhập mật khẩu hiện tại">
+      </div>
+      <div class="field">
+        <label>Mật khẩu mới</label>
+        <input type="password" id="pwNew" placeholder="Ít nhất 4 ký tự">
+      </div>
+      <div class="field">
+        <label>Xác nhận mật khẩu mới</label>
+        <input type="password" id="pwConfirm" placeholder="Nhập lại mật khẩu mới">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('passwordModal')">Hủy</button>
+      <button class="btn btn-primary" onclick="submitPasswordChange()">Lưu mật khẩu mới</button>
     </div>
   </div>
 </div>
@@ -2019,7 +2050,10 @@ function renderUsersTable(){
       <td>${u.name}</td>
       <td class="mono">${u.username}</td>
       <td><span class="stamp stamp-blue">${u.role}</span></td>
-      <td>${state.users.length>1 ? `<button class="icon-link" onclick="removeUser('${u.id}')">Xóa</button>` : ''}</td>
+      <td>
+        <button class="icon-link" onclick="openChangePasswordModal('${u.id}', true)">Đổi mật khẩu</button>
+        ${state.users.length>1 ? `<button class="icon-link" onclick="removeUser('${u.id}')">Xóa</button>` : ''}
+      </td>
     </tr>
   `).join('');
 }
@@ -2046,6 +2080,52 @@ function removeUser(id){
   state.users = state.users.filter(u=>u.id!==id);
   saveState();
   renderUsersTable();
+}
+
+/* ================= CHANGE PASSWORD ================= */
+function openChangePasswordModal(userId, isAdminReset){
+  const target = state.users.find(u=>u.id===userId);
+  if(!target){ toast('Không tìm thấy tài khoản.', true); return; }
+  if(isAdminReset && !can('manageUsers')){ toast('Bạn không có quyền đặt lại mật khẩu người dùng.', true); return; }
+  if(!isAdminReset && (!currentUser() || currentUser().id !== userId)){ toast('Không xác định được tài khoản.', true); return; }
+  document.getElementById('pwTargetUserId').value = userId;
+  document.getElementById('pwTargetUserId').dataset.adminReset = isAdminReset ? '1' : '0';
+  document.getElementById('pwCurrent').value = '';
+  document.getElementById('pwNew').value = '';
+  document.getElementById('pwConfirm').value = '';
+  document.getElementById('pwCurrentWrap').style.display = isAdminReset ? 'none' : 'block';
+  document.getElementById('passwordModalTitle').textContent = isAdminReset ? 'Đặt lại mật khẩu người dùng' : 'Đổi mật khẩu của tôi';
+  const note = document.getElementById('pwNote');
+  if(isAdminReset){
+    note.style.display = 'block';
+    note.textContent = 'Đang đặt mật khẩu mới cho tài khoản: ' + target.name + ' (' + target.username + ')';
+  } else {
+    note.style.display = 'none';
+  }
+  openModal('passwordModal');
+}
+function submitPasswordChange(){
+  const userId = document.getElementById('pwTargetUserId').value;
+  const isAdminReset = document.getElementById('pwTargetUserId').dataset.adminReset === '1';
+  const target = state.users.find(u=>u.id===userId);
+  if(!target){ toast('Không tìm thấy tài khoản.', true); return; }
+  if(isAdminReset && !can('manageUsers')){ toast('Bạn không có quyền đặt lại mật khẩu người dùng.', true); return; }
+  if(!isAdminReset){
+    if(!currentUser() || currentUser().id !== userId){ toast('Không xác định được tài khoản.', true); return; }
+    const current = document.getElementById('pwCurrent').value;
+    if(current !== target.password){ toast('Mật khẩu hiện tại không đúng.', true); return; }
+  }
+  const newPass = document.getElementById('pwNew').value;
+  const confirmPass = document.getElementById('pwConfirm').value;
+  if(!newPass || newPass.length < 4){ toast('Mật khẩu mới cần ít nhất 4 ký tự.', true); return; }
+  if(newPass !== confirmPass){ toast('Xác nhận mật khẩu mới không khớp.', true); return; }
+  target.password = newPass;
+  touch(target);
+  fbPut('users', target);
+  saveState();
+  closeModal('passwordModal');
+  toast(isAdminReset ? 'Đã đặt lại mật khẩu cho ' + target.name + '.' : 'Đã đổi mật khẩu thành công.');
+  if(document.getElementById('usersModal').classList.contains('show')) renderUsersTable();
 }
 
 /* ================= FIREBASE REALTIME SYNC ================= */
