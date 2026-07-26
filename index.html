@@ -55,11 +55,46 @@
 
   /* ---------- Login ---------- */
   #loginScreen{
-    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    display:none;
+    min-height:100vh; align-items:center; justify-content:center;
     background:
       linear-gradient(var(--navy-900),var(--navy-900)),
       repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 24px),
       repeating-linear-gradient(90deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 24px);
+  }
+
+  /* ---------- Module Hub ---------- */
+  #moduleHub{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:48px 20px;
+    background:
+      linear-gradient(var(--navy-900),var(--navy-900)),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 24px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 24px);
+  }
+  .hub-header{text-align:center; margin-bottom:36px;}
+  .hub-header .eyebrow{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.14em; color:var(--steel-300); text-transform:uppercase;}
+  .hub-header h1{font-size:26px; color:#fff; margin-top:8px;}
+  .hub-header p{color:var(--steel-300); font-size:13px; margin-top:8px; max-width:480px;}
+  .hub-grid{display:grid; grid-template-columns:repeat(4, 240px); gap:18px; max-width:1040px;}
+  .hub-card{
+    background:var(--paper-50); border-radius:var(--radius); padding:22px 18px; text-align:left;
+    border-top:4px solid var(--orange-600); box-shadow:0 12px 32px rgba(0,0,0,0.28);
+    cursor:pointer; transition:transform .12s ease, box-shadow .12s ease; position:relative; display:flex; flex-direction:column; min-height:200px;
+  }
+  .hub-card:hover{transform:translateY(-3px); box-shadow:0 16px 40px rgba(0,0,0,0.35);}
+  .hub-card.disabled{cursor:not-allowed; border-top-color:var(--steel-300); opacity:0.72;}
+  .hub-card.disabled:hover{transform:none; box-shadow:0 12px 32px rgba(0,0,0,0.28);}
+  .hub-card .hub-num{font-family:'IBM Plex Mono'; font-size:11px; color:var(--steel-500); letter-spacing:0.06em;}
+  .hub-card h3{font-size:16px; color:var(--navy-900); margin-top:8px; line-height:1.35;}
+  .hub-card .hub-desc{font-size:12px; color:var(--ink-600); margin-top:8px; line-height:1.55; flex:1;}
+  .hub-card .hub-foot{margin-top:14px;}
+  .hub-card .stamp{transform:rotate(-2deg);}
+  @media (max-width:1100px){
+    .hub-grid{grid-template-columns:repeat(2, 240px);}
+  }
+  @media (max-width:560px){
+    .hub-grid{grid-template-columns:1fr; max-width:280px;}
   }
   .login-card{
     width:380px; background:var(--paper-50); border-radius:var(--radius);
@@ -271,6 +306,41 @@
 </head>
 <body>
 
+<!-- MODULE HUB -->
+<div id="moduleHub">
+  <div class="hub-header">
+    <div class="eyebrow">TID CO., LTD</div>
+    <h1>Chọn phần mềm</h1>
+    <p>Bộ công cụ nội bộ phòng Vật tư – Dự án. Chọn 1 module để bắt đầu.</p>
+  </div>
+  <div class="hub-grid">
+    <div class="hub-card" onclick="enterModule(1)">
+      <div class="hub-num">MODULE 01</div>
+      <h3>Theo dõi quản lý hàng hóa &amp; dự án</h3>
+      <div class="hub-desc">Quản lý danh sách dự án, hàng hóa, PO đặt hàng, đợt giao hàng, thanh toán và phân quyền người dùng.</div>
+      <div class="hub-foot"><span class="stamp stamp-green">Đang sử dụng</span></div>
+    </div>
+    <div class="hub-card disabled" onclick="enterModule(2)">
+      <div class="hub-num">MODULE 02</div>
+      <h3>Check giá dự án</h3>
+      <div class="hub-desc">Tra cứu và so sánh đơn giá vật tư theo từng dự án, nhà cung cấp.</div>
+      <div class="hub-foot"><span class="stamp stamp-amber">Sắp ra mắt</span></div>
+    </div>
+    <div class="hub-card disabled" onclick="enterModule(3)">
+      <div class="hub-num">MODULE 03</div>
+      <h3>Check tồn kho hàng hóa</h3>
+      <div class="hub-desc">Theo dõi số lượng tồn kho thực tế của từng mặt hàng theo thời gian.</div>
+      <div class="hub-foot"><span class="stamp stamp-amber">Sắp ra mắt</span></div>
+    </div>
+    <div class="hub-card disabled" onclick="enterModule(4)">
+      <div class="hub-num">MODULE 04</div>
+      <h3>Theo dõi báo giá</h3>
+      <div class="hub-desc">Quản lý và theo dõi tiến trình các báo giá gửi khách hàng / nhận từ nhà cung cấp.</div>
+      <div class="hub-foot"><span class="stamp stamp-amber">Sắp ra mắt</span></div>
+    </div>
+  </div>
+</div>
+
 <!-- LOGIN SCREEN -->
 <div id="loginScreen">
   <div class="login-card">
@@ -290,6 +360,7 @@
       </div>
       <button class="btn btn-primary btn-block" onclick="handleLogin()">Đăng nhập</button>
       <div class="login-hint">Tài khoản mẫu: <b>admin</b> / mật khẩu <b>admin123</b> (vai trò Admin). Vào mục Người dùng sau khi đăng nhập để thêm tài khoản Sales / Kế toán / Viewer.</div>
+      <div style="text-align:center; margin-top:16px;"><a href="#" onclick="backToModuleHub(); return false;" style="font-size:12px; color:var(--steel-500); text-decoration:none;">← Chọn phần mềm khác</a></div>
     </div>
   </div>
 </div>
@@ -308,6 +379,7 @@
       <span id="topUserName"></span>
       <span class="role-badge" id="topUserRole"></span>
     </div>
+    <button class="icon-btn" onclick="backToModuleHub()">🧩 Đổi phần mềm</button>
     <button class="icon-btn" onclick="handleLogout()">Đăng xuất</button>
   </div>
   <div id="layout">
@@ -883,6 +955,21 @@ function handleLogout(){
   saveState();
   document.getElementById('loginPass').value = '';
   boot();
+}
+
+/* ================= MODULE HUB ================= */
+function enterModule(id){
+  if(id !== 1){
+    toast('Phần mềm này đang được xây dựng, sẽ ra mắt trong thời gian tới.');
+    return;
+  }
+  document.getElementById('moduleHub').style.display = 'none';
+  boot();
+}
+function backToModuleHub(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('moduleHub').style.display = 'flex';
 }
 
 /* ================= RENDER: SHELL ================= */
@@ -2076,7 +2163,7 @@ document.addEventListener('keydown', (e)=>{
 });
 document.getElementById('loginPass').addEventListener('keydown', (e)=>{ if(e.key==='Enter') handleLogin(); });
 saveState();
-boot();
+renderLoginUsers();
 autoReconnectFirebase();
 </script>
 </body>
