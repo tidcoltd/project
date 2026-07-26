@@ -297,7 +297,7 @@
   .badge-count{
     font-family:'IBM Plex Mono'; font-size:10px; background:var(--orange-600); color:#fff; padding:1px 6px; border-radius:10px; margin-left:6px;
   }
-  #itemsTableContainer{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  #itemsTableContainer, #dashboardTableWrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
 
   /* ---------- Mobile drawer sidebar ---------- */
   #hamburgerBtn{display:none;}
@@ -412,7 +412,7 @@
         <input type="password" id="loginPass" placeholder="Nhập mật khẩu">
       </div>
       <button class="btn btn-primary btn-block" onclick="handleLogin()">Đăng nhập</button>
-      <div class="login-hint">Tài khoản mẫu: <b>admin</b> / mật khẩu <b>admin123</b> (vai trò Admin). Vào mục Người dùng sau khi đăng nhập để thêm tài khoản Sales / Kế toán / Viewer.</div>
+      <div class="login-hint">Vui lòng chọn tài khoản và nhập mật khẩu đã cung cấp để truy cập phần mềm.</div>
       <div style="text-align:center; margin-top:16px;"><a href="#" onclick="backToModuleHub(); return false;" style="font-size:12px; color:var(--steel-500); text-decoration:none;">← Chọn phần mềm khác</a></div>
     </div>
   </div>
@@ -440,7 +440,9 @@
   <div id="layout">
     <div id="sidebarBackdrop" onclick="toggleSidebar()"></div>
     <div id="sidebar">
-      <div class="side-head"><h2>Danh sách dự án</h2></div>
+      <div class="side-head"><h2>Điều hướng</h2></div>
+      <div id="dashboardNavWrap"></div>
+      <div class="side-head" style="margin-top:6px;"><h2>Danh sách dự án</h2></div>
       <div class="side-search"><input id="projSearch" placeholder="Tìm dự án..." oninput="renderProjectList()"></div>
       <div id="projectList"></div>
       <div class="side-foot" id="addProjectBtnWrap">
@@ -907,7 +909,7 @@ function defaultState(){
     permissions: defaultPermissions(),
     deletedIds: {projects:[], items:[], poBatches:[], deliveries:[], payments:[], users:[]},
     session: {userId:null},
-    ui: {currentProjectId:demoProjId}
+    ui: {currentProjectId:demoProjId, view:'dashboard'}
   };
 }
 
@@ -921,7 +923,8 @@ function loadState(){
 function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
 let state = loadState() || defaultState();
-if(!state.ui) state.ui = {currentProjectId: (state.projects[0]||{}).id || null};
+if(!state.ui) state.ui = {currentProjectId: (state.projects[0]||{}).id || null, view:'dashboard'};
+if(!state.ui.view) state.ui.view = 'dashboard';
 if(!state.ui.itemFilters) state.ui.itemFilters = {search:'', system:'', status:'', delivery:''};
 if(!state.firebase) state.firebase = {config:null, enabled:false};
 if(!state.firebase.config){
@@ -1033,6 +1036,7 @@ function handleLogin(){
   }
   errBox.style.display = 'none';
   state.session.userId = user.id;
+  state.ui.view = 'dashboard';
   saveState();
   boot();
 }
@@ -1079,6 +1083,11 @@ function boot(){
 
 /* ================= RENDER: PROJECT LIST ================= */
 function renderProjectList(){
+  document.getElementById('dashboardNavWrap').innerHTML = `
+    <div class="proj-item ${state.ui.view==='dashboard'?'active':''}" onclick="showDashboard()">
+      <div class="p-name">📊 Tổng quan dự án</div>
+    </div>
+  `;
   const q = (document.getElementById('projSearch').value || '').toLowerCase();
   const list = document.getElementById('projectList');
   const filtered = state.projects.filter(p => (p.name+p.code).toLowerCase().includes(q));
@@ -1087,7 +1096,7 @@ function renderProjectList(){
     return;
   }
   list.innerHTML = filtered.map(p => `
-    <div class="proj-item ${p.id===state.ui.currentProjectId?'active':''}" onclick="selectProject('${p.id}')">
+    <div class="proj-item ${state.ui.view==='project' && p.id===state.ui.currentProjectId?'active':''}" onclick="selectProject('${p.id}')">
       <div class="p-code">${p.code}</div>
       <div class="p-name">${p.name}</div>
       ${p.system ? `<div style="font-size:11px; color:var(--steel-300); margin-top:3px;">⚙ ${p.system}</div>` : ''}
@@ -1100,7 +1109,15 @@ function renderProjectList(){
 }
 function selectProject(id){
   state.ui.currentProjectId = id;
+  state.ui.view = 'project';
   state.ui.itemFilters = {search:'', system:'', status:'', delivery:''};
+  saveState();
+  renderProjectList();
+  renderMain();
+  if(window.innerWidth <= 880) closeSidebar();
+}
+function showDashboard(){
+  state.ui.view = 'dashboard';
   saveState();
   renderProjectList();
   renderMain();
@@ -1118,6 +1135,10 @@ function closeSidebar(){
 /* ================= RENDER: MAIN (ITEM TABLE) ================= */
 function renderMain(){
   const main = document.getElementById('main');
+  if(state.ui.view === 'dashboard'){
+    renderDashboardView(main);
+    return;
+  }
   const proj = state.projects.find(p=>p.id===state.ui.currentProjectId);
   if(!proj){
     main.innerHTML = `
@@ -1180,6 +1201,78 @@ function renderMain(){
     <div id="itemsTableContainer"></div>
   `;
   renderItemsTable();
+}
+
+function renderDashboardView(main){
+  if(state.projects.length === 0){
+    main.innerHTML = `
+      <div class="empty-state">
+        <h3>Chưa có dự án nào</h3>
+        <p>Tạo dự án đầu tiên để bắt đầu theo dõi hàng hóa và tình trạng dự án.</p>
+        ${can('manageProjects') ? `<button class="btn btn-primary" onclick="openProjectModal()">+ Tạo dự án mới</button>` : ''}
+      </div>`;
+    return;
+  }
+
+  const rows = state.projects.map(p=>{
+    const items = state.items.filter(i=>i.projectId===p.id);
+    const contractValue = sum(items, i=>i.qty*i.price);
+    const deliveredValue = sum(items, i=>itemDeliveredValue(i.id, i.price));
+    const paid = projectPaidTotal(p.id);
+    const remainingUnpaid = deliveredValue - paid;
+    return {p, contractValue, deliveredValue, remainingUnpaid};
+  });
+
+  const grandContract = sum(rows, r=>r.contractValue);
+  const grandDelivered = sum(rows, r=>r.deliveredValue);
+  const grandRemainingUnpaid = sum(rows, r=>r.remainingUnpaid);
+
+  main.innerHTML = `
+    <div class="page-head">
+      <div class="titles"><h1>📊 Tổng quan dự án</h1></div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card"><div class="lbl">Số dự án</div><div class="val">${state.projects.length}</div></div>
+      <div class="stat-card"><div class="lbl">Tổng giá trị hợp đồng</div><div class="val">${fmtMoney(grandContract)}</div></div>
+      <div class="stat-card"><div class="lbl">Tổng giá trị đã giao</div><div class="val">${fmtMoney(grandDelivered)}</div></div>
+      <div class="stat-card ${grandRemainingUnpaid>0?'stat-card-warn':'stat-card-ok'}"><div class="lbl">Tổng còn lại chưa thanh toán</div><div class="val">${fmtMoney(grandRemainingUnpaid)}</div></div>
+    </div>
+
+    <div id="dashboardTableWrap"></div>
+  `;
+
+  document.getElementById('dashboardTableWrap').innerHTML = `
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width:44px;">STT</th>
+          <th>Dự án</th>
+          <th class="num">Giá trị hợp đồng</th>
+          <th class="num">Giá trị đã giao</th>
+          <th class="num">Còn lại chưa thanh toán</th>
+          <th>Trạng thái dự án</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((r, idx)=>`
+          <tr>
+            <td class="center mono">${idx+1}</td>
+            <td>
+              <div class="row-name">${r.p.name}</div>
+              <div class="row-code">${r.p.code||''}</div>
+            </td>
+            <td class="num">${fmtMoney(r.contractValue)}</td>
+            <td class="num">${fmtMoney(r.deliveredValue)}</td>
+            <td class="num" style="${r.remainingUnpaid>0?'color:var(--red-600);':'color:var(--green-600);'}">${fmtMoney(r.remainingUnpaid)}</td>
+            <td><span class="stamp ${projStatusStampClass(r.p.status)}">${r.p.status}</span></td>
+            <td><button class="icon-link" onclick="selectProject('${r.p.id}')">Xem chi tiết</button></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
 }
 
 function distinctItemSystems(items){
