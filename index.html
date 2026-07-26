@@ -254,7 +254,7 @@
 
   /* ---------- Modals ---------- */
   .overlay{
-    display:none; position:fixed; inset:0; background:rgba(15,36,49,0.55); z-index:100;
+    display:none; position:fixed; inset:0; background:rgba(15,36,49,0.55); z-index:200;
     align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto;
   }
   .overlay.show{display:flex;}
@@ -297,10 +297,63 @@
   .badge-count{
     font-family:'IBM Plex Mono'; font-size:10px; background:var(--orange-600); color:#fff; padding:1px 6px; border-radius:10px; margin-left:6px;
   }
+  #itemsTableContainer{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+
+  /* ---------- Mobile drawer sidebar ---------- */
+  #hamburgerBtn{display:none;}
+  #sidebarBackdrop{display:none; position:fixed; inset:0; background:rgba(10,20,30,0.5); z-index:140;}
+  #sidebarBackdrop.show{display:block;}
+
   @media (max-width:880px){
     #layout{grid-template-columns:1fr;}
-    #sidebar{display:none;}
+    #sidebar{
+      position:fixed; top:0; left:0; bottom:0; width:82%; max-width:300px;
+      transform:translateX(-100%); transition:transform .22s ease; z-index:150;
+      box-shadow:10px 0 30px rgba(0,0,0,0.35);
+    }
+    #sidebar.show{transform:translateX(0);}
+    #hamburgerBtn{display:flex;}
     .grid-2, .grid-3{grid-template-columns:1fr;}
+  }
+
+  @media (max-width:768px){
+    #appShell{grid-template-rows:auto 1fr;}
+    #topbar{flex-wrap:wrap; padding:8px 12px; gap:6px 8px; row-gap:8px;}
+    #topbar .brand .title{font-size:13px;}
+    #topbar .brand .title small{display:none;}
+    #topbar .icon-btn{padding:5px 8px; font-size:11px;}
+    #topbar .spacer{flex-basis:100%; height:0;}
+    #topbar .user-chip{order:1; font-size:11.5px;}
+
+    #main{padding:14px 10px 32px;}
+    .page-head{flex-direction:column; align-items:stretch; gap:10px;}
+    .page-head h1{font-size:18px;}
+    .page-head .titles{gap:8px;}
+    .page-head .actions{flex-wrap:wrap; gap:6px;}
+    .page-head .actions .btn{flex:1 1 auto; font-size:11.5px; padding:7px 10px;}
+
+    .stat-row{gap:8px;}
+    .stat-card{min-width:0; flex:1 1 46%; padding:10px 12px;}
+    .stat-card .val{font-size:17px;}
+
+    .filter-bar{gap:10px;}
+    .filter-bar .field{flex:1 1 100%; min-width:0 !important;}
+    .filter-bar .btn{flex:1 1 auto;}
+
+    table.data-table{min-width:1000px;}
+    .mini-table{min-width:560px;}
+
+    .overlay{padding:14px 6px; align-items:center;}
+    .modal, .modal.wide{max-width:96vw; width:96vw;}
+    .modal-head{padding:14px 16px;}
+    .modal-body{padding:14px 16px; max-height:78vh; overflow-x:auto; -webkit-overflow-scrolling:touch;}
+    .modal-foot{padding:12px 16px; flex-wrap:wrap;}
+
+    .inline-form{gap:8px;}
+    .inline-form .field{flex:1 1 100%;}
+
+    .login-card{width:92vw; max-width:380px;}
+    .hub-header h1{font-size:21px;}
   }
 </style>
 </head>
@@ -368,6 +421,7 @@
 <!-- APP SHELL -->
 <div id="appShell">
   <div id="topbar">
+    <button class="icon-btn" id="hamburgerBtn" onclick="toggleSidebar()">☰</button>
     <div class="brand">
       <div class="mark">TID</div>
       <div class="title">THEO DÕI HÀNG HÓA DỰ ÁN<small>Goods &amp; Delivery Tracker</small></div>
@@ -383,6 +437,7 @@
     <button class="icon-btn" onclick="handleLogout()">Đăng xuất</button>
   </div>
   <div id="layout">
+    <div id="sidebarBackdrop" onclick="toggleSidebar()"></div>
     <div id="sidebar">
       <div class="side-head"><h2>Danh sách dự án</h2></div>
       <div class="side-search"><input id="projSearch" placeholder="Tìm dự án..." oninput="renderProjectList()"></div>
@@ -927,7 +982,7 @@ function toast(msg, isError){
   document.body.appendChild(t);
   setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(6px)'; setTimeout(()=>t.remove(),250); }, 2400);
 }
-function openModal(id){ document.getElementById(id).classList.add('show'); }
+function openModal(id){ document.getElementById(id).classList.add('show'); if(window.innerWidth <= 880) closeSidebar(); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
 /* ================= LOGIN ================= */
@@ -1018,6 +1073,15 @@ function selectProject(id){
   saveState();
   renderProjectList();
   renderMain();
+  if(window.innerWidth <= 880) closeSidebar();
+}
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('show');
+  document.getElementById('sidebarBackdrop').classList.toggle('show');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('show');
+  document.getElementById('sidebarBackdrop').classList.remove('show');
 }
 
 /* ================= RENDER: MAIN (ITEM TABLE) ================= */
