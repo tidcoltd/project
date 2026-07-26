@@ -429,6 +429,7 @@
     <div class="spacer"></div>
     <button class="icon-btn" onclick="openSyncModal()">⇅ Đồng bộ Firebase</button>
     <button class="icon-btn" id="btnUsers" onclick="openUsersModal()" style="display:none;">👤 Người dùng</button>
+    <button class="icon-btn" id="btnActivityLog" onclick="openActivityLogModal()" style="display:none;">📜 Nhật ký</button>
     <div class="user-chip">
       <span id="topUserName"></span>
       <span class="role-badge" id="topUserRole"></span>
@@ -899,6 +900,45 @@
   </div>
 </div>
 
+<!-- ACTIVITY LOG MODAL -->
+<div class="overlay" id="activityLogModal">
+  <div class="modal wide" style="max-width:980px;">
+    <div class="modal-head">
+      <h2>Nhật ký hoạt động</h2>
+      <button class="modal-close" onclick="closeModal('activityLogModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="filter-bar" style="margin-bottom:14px;">
+        <div class="field" style="min-width:190px;">
+          <label>Tìm kiếm</label>
+          <input id="logFltSearch" placeholder="Tên hàng hóa / dự án..." oninput="renderActivityLogTable()">
+        </div>
+        <div class="field" style="min-width:160px;">
+          <label>Người dùng</label>
+          <select id="logFltUser" onchange="renderActivityLogTable()"><option value="">Tất cả người dùng</option></select>
+        </div>
+        <div class="field" style="min-width:150px;">
+          <label>Hành động</label>
+          <select id="logFltAction" onchange="renderActivityLogTable()">
+            <option value="">Tất cả hành động</option>
+            <option value="add">Thêm</option>
+            <option value="edit">Sửa</option>
+            <option value="delete">Xóa</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:170px;">
+          <label>Đối tượng</label>
+          <select id="logFltEntity" onchange="renderActivityLogTable()"><option value="">Tất cả đối tượng</option></select>
+        </div>
+        <button class="btn btn-ghost btn-sm" style="align-self:flex-end;" onclick="clearActivityLogFilters()">Xóa lọc</button>
+        <button class="btn btn-primary btn-sm" style="align-self:flex-end;" onclick="exportActivityLogExcel()">⇩ Xuất Excel</button>
+      </div>
+      <div id="activityLogTableWrap"></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('activityLogModal')">Đóng</button></div>
+  </div>
+</div>
+
 <!-- SYNC MODAL -->
 <div class="overlay" id="syncModal">
   <div class="modal wide">
@@ -983,6 +1023,7 @@ function defaultState(){
     firebase: {config: DEFAULT_FIREBASE_CONFIG, enabled:true},
     permissions: defaultPermissions(),
     deletedIds: {projects:[], items:[], poBatches:[], deliveries:[], payments:[], users:[]},
+    activityLog: [],
     session: {userId:null},
     ui: {currentProjectId:demoProjId, view:'dashboard'}
   };
@@ -1009,12 +1050,29 @@ if(!state.firebase.config){
 if(!state.permissions) state.permissions = defaultPermissions();
 if(!state.payments) state.payments = [];
 if(!state.deletedIds) state.deletedIds = {projects:[], items:[], poBatches:[], deliveries:[], payments:[], users:[]};
+if(!state.activityLog) state.activityLog = [];
 ['projects','items','poBatches','deliveries','payments','users'].forEach(t=>{ if(!state.deletedIds[t]) state.deletedIds[t] = []; });
 function markDeleted(table, id){
   if(!state.deletedIds[table]) state.deletedIds[table] = [];
   if(!state.deletedIds[table].includes(id)) state.deletedIds[table].push(id);
 }
 function touch(record){ record.updatedAt = Date.now(); return record; }
+function logActivity(action, entityType, label, extra){
+  const u = currentUser();
+  const entry = {
+    id: uid('log'),
+    ts: Date.now(),
+    userId: u ? u.id : '',
+    userName: u ? u.name : 'Hệ thống',
+    userRole: u ? u.role : '',
+    action, entityType, label,
+    extra: extra || ''
+  };
+  state.activityLog.push(entry);
+  if(state.activityLog.length > 3000) state.activityLog = state.activityLog.slice(-3000);
+  saveState();
+  fbPut('activityLog', entry);
+}
 state.projects.forEach(p=>{ if(p.system===undefined) p.system=''; if(p.progress===undefined) p.progress='Chưa khởi công'; if(p.progressPct===undefined) p.progressPct=0; });
 state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; if(i.vat===undefined) i.vat=0; });
 
@@ -1031,7 +1089,8 @@ const PERMISSION_ACTIONS = [
   {key:'manageDeliveries', label:'Quản lý / cập nhật giao hàng'},
   {key:'managePayments', label:'Quản lý giá trị thanh toán'},
   {key:'manageUsers', label:'Quản lý người dùng'},
-  {key:'manageSettings', label:'Cấu hình đồng bộ Google Sheets'},
+  {key:'manageSettings', label:'Cấu hình đồng bộ Firebase'},
+  {key:'viewActivityLog', label:'Xem Nhật ký hoạt động'},
 ];
 function defaultPermissions(){
   return {
@@ -1045,6 +1104,7 @@ function defaultPermissions(){
     managePayments: ['Admin','Kế toán'],
     manageUsers: ['Admin'],
     manageSettings: ['Admin'],
+    viewActivityLog: ['Admin'],
   };
 }
 function can(action){
@@ -1152,6 +1212,7 @@ function boot(){
   document.getElementById('topUserName').textContent = user.name;
   document.getElementById('topUserRole').textContent = user.role;
   document.getElementById('btnUsers').style.display = can('manageUsers') ? 'flex' : 'none';
+  document.getElementById('btnActivityLog').style.display = can('viewActivityLog') ? 'flex' : 'none';
   document.getElementById('addProjectBtnWrap').style.display = can('manageProjects') ? 'block' : 'none';
   renderProjectList();
   renderMain();
@@ -1567,11 +1628,13 @@ function saveProject(){
     Object.assign(p, common);
     touch(p);
     fbPut('projects', p);
+    logActivity('edit', 'project', p.name, p.code);
   } else {
     const newP = touch(Object.assign({id:uid('pj')}, common));
     state.projects.push(newP);
     state.ui.currentProjectId = newP.id;
     fbPut('projects', newP);
+    logActivity('add', 'project', newP.name, newP.code);
   }
   saveState();
   closeModal('projectModal');
@@ -1582,6 +1645,7 @@ function saveProject(){
 function deleteProject(id){
   if(!can('deleteProjects')){ toast('Bạn không có quyền xóa dự án.', true); return; }
   if(!confirm('Xóa dự án sẽ xóa toàn bộ hàng hóa, PO và đợt giao hàng liên quan. Tiếp tục?')) return;
+  const projToDelete = state.projects.find(p=>p.id===id);
   const itemIds = state.items.filter(i=>i.projectId===id).map(i=>i.id);
   state.poBatches.filter(p=>itemIds.includes(p.itemId)).forEach(p=>{ markDeleted('poBatches', p.id); fbDelete('poBatches', p.id); });
   state.deliveries.filter(d=>itemIds.includes(d.itemId)).forEach(d=>{ markDeleted('deliveries', d.id); fbDelete('deliveries', d.id); });
@@ -1596,6 +1660,7 @@ function deleteProject(id){
   state.projects = state.projects.filter(p=>p.id!==id);
   if(state.ui.currentProjectId === id) state.ui.currentProjectId = (state.projects[0]||{}).id || null;
   saveState();
+  logActivity('delete', 'project', projToDelete ? projToDelete.name : id, `kèm ${itemIds.length} hàng hóa liên quan`);
   renderProjectList();
   renderMain();
   toast('Đã xóa dự án.');
@@ -1668,10 +1733,12 @@ function saveItem(){
   if(id){
     const it = touch(Object.assign(state.items.find(x=>x.id===id), payload));
     fbPut('items', it);
+    logActivity('edit', 'item', it.name, it.code);
   } else {
     const newIt = touch(Object.assign({id:uid('it'), projectId, price:0, vat:0, doc:''}, payload));
     state.items.push(newIt);
     fbPut('items', newIt);
+    logActivity('add', 'item', newIt.name, newIt.code);
   }
   saveState();
   closeModal('itemModal');
@@ -1681,6 +1748,7 @@ function saveItem(){
 function deleteItem(id){
   if(!can('deleteItems')){ toast('Bạn không có quyền xóa hàng hóa.', true); return; }
   if(!confirm('Xóa hàng hóa này và toàn bộ PO / đợt giao hàng liên quan?')) return;
+  const itToDelete = state.items.find(i=>i.id===id);
   state.poBatches.filter(p=>p.itemId===id).forEach(p=>{ markDeleted('poBatches', p.id); fbDelete('poBatches', p.id); });
   state.deliveries.filter(d=>d.itemId===id).forEach(d=>{ markDeleted('deliveries', d.id); fbDelete('deliveries', d.id); });
   markDeleted('items', id);
@@ -1689,6 +1757,7 @@ function deleteItem(id){
   state.deliveries = state.deliveries.filter(d=>d.itemId!==id);
   state.items = state.items.filter(i=>i.id!==id);
   saveState();
+  logActivity('delete', 'item', itToDelete ? itToDelete.name : id, itToDelete ? itToDelete.code : '');
   renderMain();
   toast('Đã xóa hàng hóa.');
 }
@@ -1754,6 +1823,8 @@ function addPO(){
   const newPO = touch({id:uid('po'), itemId:detailItemId, poCode, date, qty});
   state.poBatches.push(newPO);
   fbPut('poBatches', newPO);
+  const poItem = state.items.find(i=>i.id===detailItemId);
+  logActivity('add', 'po', poItem ? poItem.name : detailItemId, `Số PO: ${poCode}, SL: ${qty}`);
   document.getElementById('poCode').value=''; document.getElementById('poDate').value=''; document.getElementById('poQty').value='';
   saveState();
   renderDetailModal();
@@ -1762,10 +1833,13 @@ function addPO(){
 }
 function removePO(id){
   if(!can('managePO')) return;
+  const po = state.poBatches.find(p=>p.id===id);
+  const poItem = po ? state.items.find(i=>i.id===po.itemId) : null;
   markDeleted('poBatches', id);
   fbDelete('poBatches', id);
   state.poBatches = state.poBatches.filter(p=>p.id!==id);
   saveState();
+  logActivity('delete', 'po', poItem ? poItem.name : (po?po.itemId:id), po ? `Số PO: ${po.poCode}, SL: ${po.qty}` : '');
   renderDetailModal();
   renderMain();
 }
@@ -1779,6 +1853,8 @@ function addDelivery(){
   const newDv = touch({id:uid('dv'), itemId:detailItemId, batchNo, date, qty, note});
   state.deliveries.push(newDv);
   fbPut('deliveries', newDv);
+  const dvItem = state.items.find(i=>i.id===detailItemId);
+  logActivity('add', 'delivery', dvItem ? dvItem.name : detailItemId, `${batchNo}, SL: ${qty}`);
   document.getElementById('dvBatch').value=''; document.getElementById('dvDate').value=''; document.getElementById('dvQty').value=''; document.getElementById('dvNote').value='';
   saveState();
   renderDetailModal();
@@ -1787,10 +1863,13 @@ function addDelivery(){
 }
 function removeDelivery(id){
   if(!can('manageDeliveries')) return;
+  const dv = state.deliveries.find(d=>d.id===id);
+  const dvItem = dv ? state.items.find(i=>i.id===dv.itemId) : null;
   markDeleted('deliveries', id);
   fbDelete('deliveries', id);
   state.deliveries = state.deliveries.filter(d=>d.id!==id);
   saveState();
+  logActivity('delete', 'delivery', dvItem ? dvItem.name : (dv?dv.itemId:id), dv ? `${dv.batchNo}, SL: ${dv.qty}` : '');
   renderDetailModal();
   renderMain();
 }
@@ -1903,6 +1982,8 @@ function confirmImport(){
   });
   fbBulkPut('items', newItems);
   saveState();
+  const importProj = state.projects.find(p=>p.id===projectId);
+  logActivity('add', 'import', importProj ? importProj.name : projectId, `Nhập ${importParsedRows.length} hàng hóa từ Excel`);
   closeModal('importModal');
   renderMain();
   toast(`Đã nhập ${importParsedRows.length} hàng hóa từ Excel.`);
@@ -2027,6 +2108,7 @@ function submitDeliveryUpdate(){
   if(count === 0){ toast('Vui lòng chọn ít nhất 1 hàng hóa và nhập số lượng giao > 0.', true); return; }
   fbBulkPut('deliveries', newDeliveries);
   saveState();
+  logActivity('add', 'bulk_delivery', batchNo, `Cập nhật giao hàng cho ${count} hàng hóa`);
   closeModal('deliveryUpdateModal');
   renderMain();
   toast(`Đã cập nhật giao hàng cho ${count} hàng hóa.`);
@@ -2117,6 +2199,7 @@ function submitPOUpdate(){
   if(count === 0){ toast('Vui lòng chọn ít nhất 1 hàng hóa và nhập số lượng đặt PO > 0.', true); return; }
   fbBulkPut('poBatches', newPOs);
   saveState();
+  logActivity('add', 'bulk_po', poCode, `Cập nhật PO cho ${count} hàng hóa`);
   closeModal('poUpdateModal');
   renderMain();
   toast(`Đã cập nhật PO đặt hàng cho ${count} hàng hóa.`);
@@ -2199,6 +2282,7 @@ function submitImportStatusUpdate(){
   if(count === 0){ toast('Vui lòng chọn ít nhất 1 hàng hóa.', true); return; }
   fbBulkPut('items', updatedItems);
   saveState();
+  logActivity('edit', 'bulk_import_status', newStatus, `Cập nhật tiến độ nhập hàng cho ${count} hàng hóa`);
   closeModal('importStatusUpdateModal');
   renderMain();
   toast(`Đã cập nhật tiến độ nhập hàng cho ${count} hàng hóa.`);
@@ -2357,6 +2441,8 @@ function addPayment(){
   const newPm = touch({id:uid('pm'), projectId:paymentProjectId, batchNo, date, amount, note});
   state.payments.push(newPm);
   fbPut('payments', newPm);
+  const pmProj = state.projects.find(p=>p.id===paymentProjectId);
+  logActivity('add', 'payment', pmProj ? pmProj.name : paymentProjectId, `${batchNo}, Giá trị: ${fmtMoney(amount)}`);
   document.getElementById('pmBatch').value=''; document.getElementById('pmDate').value=''; document.getElementById('pmAmount').value=''; document.getElementById('pmNote').value='';
   saveState();
   renderPaymentModal();
@@ -2365,10 +2451,13 @@ function addPayment(){
 }
 function removePayment(id){
   if(!can('managePayments')) return;
+  const pm = state.payments.find(p=>p.id===id);
+  const pmProj = pm ? state.projects.find(p=>p.id===pm.projectId) : null;
   markDeleted('payments', id);
   fbDelete('payments', id);
   state.payments = state.payments.filter(p=>p.id!==id);
   saveState();
+  logActivity('delete', 'payment', pmProj ? pmProj.name : (pm?pm.projectId:id), pm ? `${pm.batchNo}, Giá trị: ${fmtMoney(pm.amount)}` : '');
   renderPaymentModal();
   renderMain();
 }
@@ -2405,6 +2494,7 @@ function togglePermission(actionKey, role, checked){
   }
   saveState();
   fbPutPermissions();
+  logActivity(checked?'add':'delete', 'permission', PERMISSION_ACTIONS.find(a=>a.key===actionKey)?.label || actionKey, `${role}: ${checked?'bật':'tắt'}`);
   toast('Đã cập nhật phân quyền.');
   renderPermTable();
   boot();
@@ -2416,6 +2506,7 @@ function resetPermissions(){
   state.permissions = defaultPermissions();
   saveState();
   fbPutPermissions();
+  logActivity('edit', 'permission', 'Khôi phục mặc định', 'Đặt lại toàn bộ ma trận phân quyền');
   toast('Đã khôi phục phân quyền mặc định.');
   renderPermTable();
   boot();
@@ -2444,6 +2535,7 @@ function addUser(){
   const newUser = touch({id:uid('u'), name, username, password, role});
   state.users.push(newUser);
   fbPut('users', newUser);
+  logActivity('add', 'user', newUser.name, `Tài khoản: ${username}, Vai trò: ${role}`);
   document.getElementById('usrName').value=''; document.getElementById('usrUsername').value=''; document.getElementById('usrPassword').value='';
   saveState();
   renderUsersTable();
@@ -2452,10 +2544,12 @@ function addUser(){
 function removeUser(id){
   if(id === state.session.userId){ toast('Không thể xóa tài khoản đang đăng nhập.', true); return; }
   if(!confirm('Xóa người dùng này?')) return;
+  const userToDelete = state.users.find(u=>u.id===id);
   markDeleted('users', id);
   fbDelete('users', id);
   state.users = state.users.filter(u=>u.id!==id);
   saveState();
+  logActivity('delete', 'user', userToDelete ? userToDelete.name : id, userToDelete ? `Tài khoản: ${userToDelete.username}` : '');
   renderUsersTable();
 }
 
@@ -2500,13 +2594,101 @@ function submitPasswordChange(){
   touch(target);
   fbPut('users', target);
   saveState();
+  logActivity('edit', 'password', target.name, isAdminReset ? 'Admin đặt lại mật khẩu' : 'Tự đổi mật khẩu');
   closeModal('passwordModal');
   toast(isAdminReset ? 'Đã đặt lại mật khẩu cho ' + target.name + '.' : 'Đã đổi mật khẩu thành công.');
   if(document.getElementById('usersModal').classList.contains('show')) renderUsersTable();
 }
 
+/* ================= ACTIVITY LOG ================= */
+const ENTITY_TYPE_LABELS = {
+  project: 'Dự án', item: 'Hàng hóa', po: 'PO đặt hàng', delivery: 'Đợt giao hàng',
+  payment: 'Thanh toán', user: 'Người dùng', permission: 'Phân quyền', import: 'Nhập Excel',
+  bulk_delivery: 'Cập nhật giao hàng hàng loạt', bulk_po: 'Cập nhật PO hàng loạt',
+  bulk_import_status: 'Cập nhật tiến độ nhập hàng hàng loạt', password: 'Mật khẩu',
+};
+const ACTION_LABELS = { add:'Thêm', edit:'Sửa', delete:'Xóa' };
+function actionStampClass(action){
+  const map = {add:'stamp-green', edit:'stamp-blue', delete:'stamp-red'};
+  return map[action] || 'stamp-grey';
+}
+function openActivityLogModal(){
+  if(!can('viewActivityLog')){ toast('Bạn không có quyền xem nhật ký hoạt động.', true); return; }
+  document.getElementById('logFltSearch').value = '';
+  document.getElementById('logFltAction').value = '';
+  const users = [...new Set(state.activityLog.map(l=>l.userName))].filter(Boolean).sort((a,b)=>a.localeCompare(b,'vi'));
+  document.getElementById('logFltUser').innerHTML = `<option value="">Tất cả người dùng</option>` + users.map(u=>`<option value="${u}">${u}</option>`).join('');
+  document.getElementById('logFltUser').value = '';
+  const entities = [...new Set(state.activityLog.map(l=>l.entityType))].filter(Boolean);
+  document.getElementById('logFltEntity').innerHTML = `<option value="">Tất cả đối tượng</option>` + entities.map(e=>`<option value="${e}">${ENTITY_TYPE_LABELS[e]||e}</option>`).join('');
+  document.getElementById('logFltEntity').value = '';
+  renderActivityLogTable();
+  openModal('activityLogModal');
+}
+function clearActivityLogFilters(){
+  document.getElementById('logFltSearch').value = '';
+  document.getElementById('logFltUser').value = '';
+  document.getElementById('logFltAction').value = '';
+  document.getElementById('logFltEntity').value = '';
+  renderActivityLogTable();
+}
+function getFilteredActivityLog(){
+  const q = (document.getElementById('logFltSearch').value||'').trim().toLowerCase();
+  const user = document.getElementById('logFltUser').value;
+  const action = document.getElementById('logFltAction').value;
+  const entity = document.getElementById('logFltEntity').value;
+  return state.activityLog.filter(l=>{
+    if(q && !((l.label + ' ' + (l.extra||'')).toLowerCase().includes(q))) return false;
+    if(user && l.userName !== user) return false;
+    if(action && l.action !== action) return false;
+    if(entity && l.entityType !== entity) return false;
+    return true;
+  }).sort((a,b)=>b.ts-a.ts);
+}
+function renderActivityLogTable(){
+  const rows = getFilteredActivityLog();
+  const wrap = document.getElementById('activityLogTableWrap');
+  if(rows.length === 0){
+    wrap.innerHTML = `<div class="empty-state" style="margin-top:6px;"><h3>Chưa có hoạt động nào khớp bộ lọc</h3><p>Thử điều chỉnh lại điều kiện lọc.</p></div>`;
+    return;
+  }
+  const shown = rows.slice(0, 500);
+  wrap.innerHTML = `
+    ${rows.length>500 ? `<div class="permission-note">Đang hiển thị 500 hoạt động gần nhất trong tổng số ${rows.length} (theo bộ lọc hiện tại). Dùng bộ lọc để thu hẹp thêm.</div>` : ''}
+    <table class="mini-table">
+      <thead><tr><th>Thời gian</th><th>Người dùng</th><th>Vai trò</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead>
+      <tbody>
+        ${shown.map(l=>`
+          <tr>
+            <td class="mono" style="white-space:nowrap;">${new Date(l.ts).toLocaleString('vi-VN')}</td>
+            <td>${l.userName||'—'}</td>
+            <td><span class="stamp stamp-blue">${l.userRole||'—'}</span></td>
+            <td><span class="stamp ${actionStampClass(l.action)}">${ACTION_LABELS[l.action]||l.action}</span></td>
+            <td>${ENTITY_TYPE_LABELS[l.entityType]||l.entityType}</td>
+            <td>${l.label||''}${l.extra?(' — '+l.extra):''}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+function exportActivityLogExcel(){
+  const rows = getFilteredActivityLog();
+  if(rows.length===0){ toast('Không có dữ liệu nhật ký để xuất.', true); return; }
+  const aoa = [['Thời gian','Người dùng','Vai trò','Hành động','Đối tượng','Chi tiết']];
+  rows.forEach(l=>{
+    aoa.push([new Date(l.ts).toLocaleString('vi-VN'), l.userName||'', l.userRole||'', ACTION_LABELS[l.action]||l.action, ENTITY_TYPE_LABELS[l.entityType]||l.entityType, (l.label||'') + (l.extra?(' - '+l.extra):'')]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = aoa[0].map(()=>({wch:22}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Nhat ky');
+  XLSX.writeFile(wb, 'nhat-ky-hoat-dong.xlsx');
+  toast('Đã xuất file Excel nhật ký hoạt động.');
+}
+
 /* ================= FIREBASE REALTIME SYNC ================= */
-const FIREBASE_TABLES = ['projects','items','poBatches','deliveries','payments','users'];
+const FIREBASE_TABLES = ['projects','items','poBatches','deliveries','payments','users','activityLog'];
 const FIREBASE_RULES = `{
   "rules": {
     "data": {
@@ -2641,6 +2823,7 @@ function refreshOpenViews(){
   if(document.getElementById('paymentModal').classList.contains('show') && typeof paymentProjectId!=='undefined' && paymentProjectId) renderPaymentModal();
   if(document.getElementById('deliveryListModal').classList.contains('show') && typeof deliveryListProjectId!=='undefined' && deliveryListProjectId) renderDeliveryListModal();
   if(document.getElementById('usersModal').classList.contains('show')){ renderUsersTable(); renderPermTable(); }
+  if(document.getElementById('activityLogModal').classList.contains('show')) renderActivityLogTable();
 }
 
 function fbPut(table, record){
