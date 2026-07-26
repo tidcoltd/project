@@ -1,0 +1,2068 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Theo Dõi Hàng Hóa Dự Án — TID CO.,LTD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --navy-900:#0F2A43;
+    --navy-800:#16385A;
+    --navy-700:#1B3A5C;
+    --steel-500:#5A7186;
+    --steel-300:#9AAAB8;
+    --paper-50:#F7F6F2;
+    --paper-100:#EDEBE2;
+    --paper-200:#E2DFD3;
+    --ink-900:#152431;
+    --ink-600:#425264;
+    --orange-600:#E2570C;
+    --orange-700:#C4480A;
+    --amber-500:#C97A1D;
+    --green-600:#2F7A4D;
+    --green-100:#E1F0E5;
+    --red-600:#B23A2E;
+    --red-100:#F5E2DF;
+    --amber-100:#F5E9D6;
+    --steel-100:#E7EBEE;
+    --line:#D8D4C8;
+    --line-dark:#33465C;
+    --radius:3px;
+    --shadow-card:0 1px 2px rgba(15,42,67,0.08), 0 1px 1px rgba(15,42,67,0.04);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'IBM Plex Sans', sans-serif;
+    background:var(--paper-50);
+    color:var(--ink-900);
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{font-family:'Oswald', sans-serif; font-weight:600; letter-spacing:0.02em; margin:0;}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  button{font-family:inherit; cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+  ::-webkit-scrollbar{width:10px; height:10px;}
+  ::-webkit-scrollbar-thumb{background:var(--steel-300); border-radius:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+
+  /* ---------- Login ---------- */
+  #loginScreen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:
+      linear-gradient(var(--navy-900),var(--navy-900)),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 24px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 24px);
+  }
+  .login-card{
+    width:380px; background:var(--paper-50); border-radius:var(--radius);
+    box-shadow:0 20px 60px rgba(0,0,0,0.35); overflow:hidden;
+    border-top:4px solid var(--orange-600);
+  }
+  .login-head{padding:28px 30px 18px;}
+  .login-head .eyebrow{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.12em; color:var(--steel-500); text-transform:uppercase;}
+  .login-head h1{font-size:22px; color:var(--navy-900); margin-top:6px; line-height:1.25;}
+  .login-body{padding:4px 30px 30px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:12px; color:var(--ink-600); margin-bottom:5px; font-weight:600; letter-spacing:0.01em;}
+  .field select, .field input{
+    width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:var(--radius);
+    background:#fff; font-size:14px; color:var(--ink-900);
+  }
+  .field select:focus, .field input:focus{outline:2px solid var(--orange-600); outline-offset:1px; border-color:var(--orange-600);}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    padding:9px 16px; border-radius:var(--radius); border:1px solid transparent;
+    font-size:13.5px; font-weight:600; letter-spacing:0.01em; transition:filter .12s ease;
+  }
+  .btn:focus-visible{outline:2px solid var(--orange-600); outline-offset:2px;}
+  .btn:active{filter:brightness(0.92);}
+  .btn-primary{background:var(--orange-600); color:#fff;}
+  .btn-primary:hover{background:var(--orange-700);}
+  .btn-dark{background:var(--navy-900); color:#fff;}
+  .btn-dark:hover{background:var(--navy-800);}
+  .btn-ghost{background:transparent; color:var(--navy-900); border-color:var(--line);}
+  .btn-ghost:hover{background:var(--paper-100);}
+  .btn-danger{background:transparent; color:var(--red-600); border-color:var(--red-100);}
+  .btn-danger:hover{background:var(--red-100);}
+  .btn-block{width:100%;}
+  .btn-sm{padding:5px 10px; font-size:12px;}
+  .btn[disabled]{opacity:0.45; cursor:not-allowed;}
+  .login-error{background:var(--red-100); color:var(--red-600); font-size:12.5px; padding:8px 10px; border-radius:var(--radius); margin-bottom:12px; display:none;}
+  .login-hint{font-size:11.5px; color:var(--steel-500); margin-top:14px; line-height:1.5;}
+
+  /* ---------- App shell ---------- */
+  #appShell{display:none; min-height:100vh; grid-template-rows:56px 1fr;}
+  #topbar{
+    grid-row:1; background:var(--navy-900); color:#fff; display:flex; align-items:center;
+    padding:0 18px; gap:16px; border-bottom:3px solid var(--orange-600); position:relative; z-index:20;
+  }
+  #topbar .brand{display:flex; align-items:center; gap:10px; margin-right:8px;}
+  #topbar .brand .mark{
+    width:30px; height:30px; border:2px solid var(--orange-600); border-radius:2px;
+    display:flex; align-items:center; justify-content:center; font-family:'Oswald'; font-weight:700; font-size:14px; color:var(--orange-600);
+    transform:rotate(-2deg);
+  }
+  #topbar .brand .title{font-size:15px; letter-spacing:0.03em; line-height:1.1;}
+  #topbar .brand .title small{display:block; font-family:'IBM Plex Mono'; font-size:10px; color:var(--steel-300); letter-spacing:0.08em; text-transform:uppercase; margin-top:2px;}
+  #topbar .spacer{flex:1;}
+  #topbar .user-chip{display:flex; align-items:center; gap:8px; font-size:13px;}
+  #topbar .role-badge{
+    font-family:'IBM Plex Mono'; font-size:10.5px; padding:3px 7px; border-radius:2px; letter-spacing:0.05em;
+    background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2);
+  }
+  #topbar .icon-btn{
+    background:transparent; border:1px solid rgba(255,255,255,0.18); color:#fff; padding:6px 10px; border-radius:2px; font-size:12.5px;
+    display:flex; align-items:center; gap:6px;
+  }
+  #topbar .icon-btn:hover{background:rgba(255,255,255,0.1);}
+
+  #layout{grid-row:2; display:grid; grid-template-columns:260px 1fr; min-height:0;}
+  #sidebar{
+    background:var(--navy-800); color:#fff; padding:16px 0 16px; overflow-y:auto; border-right:1px solid var(--line-dark);
+  }
+  #sidebar .side-head{display:flex; align-items:center; justify-content:space-between; padding:0 16px 10px; }
+  #sidebar .side-head h2{font-size:12px; letter-spacing:0.1em; color:var(--steel-300); text-transform:uppercase;}
+  #sidebar .side-search{padding:0 16px 12px;}
+  #sidebar .side-search input{
+    width:100%; padding:7px 9px; font-size:12.5px; border-radius:2px; border:1px solid rgba(255,255,255,0.15);
+    background:rgba(255,255,255,0.06); color:#fff;
+  }
+  #sidebar .side-search input::placeholder{color:var(--steel-300);}
+  .proj-item{
+    padding:10px 16px; cursor:pointer; border-left:3px solid transparent; font-size:13px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
+  }
+  .proj-item:hover{background:rgba(255,255,255,0.05);}
+  .proj-item.active{background:rgba(226,87,12,0.14); border-left-color:var(--orange-600);}
+  .proj-item .p-code{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--steel-300); letter-spacing:0.05em;}
+  .proj-item .p-name{margin-top:2px; font-weight:500; line-height:1.3;}
+  .proj-item .p-status{margin-top:5px; font-size:10.5px;}
+  #sidebar .side-foot{padding:14px 16px 0;}
+
+  #main{padding:20px 24px 40px; overflow-y:auto;}
+  .empty-state{
+    display:flex; flex-direction:column; align-items:flex-start; gap:10px; max-width:460px;
+    margin-top:60px; padding:26px; background:#fff; border:1px dashed var(--line); border-radius:var(--radius);
+  }
+  .empty-state h3{font-size:18px; color:var(--navy-900);}
+  .empty-state p{margin:0; font-size:13.5px; color:var(--ink-600); line-height:1.6;}
+
+  .page-head{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px; gap:16px;}
+  .page-head .titles{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;}
+  .page-head h1{font-size:21px; color:var(--navy-900);}
+  .page-head .p-code-tag{font-family:'IBM Plex Mono'; font-size:11.5px; color:var(--steel-500); border:1px solid var(--line); padding:2px 7px; border-radius:2px;}
+  .page-head .actions{display:flex; gap:8px; flex-shrink:0;}
+  .proj-meta{display:flex; gap:18px; margin-top:8px; flex-wrap:wrap;}
+  .proj-meta .m{font-size:12px; color:var(--ink-600);}
+  .proj-meta .m b{color:var(--navy-900); font-family:'IBM Plex Mono'; font-weight:600;}
+
+  .stat-row{display:flex; gap:12px; margin-bottom:18px; flex-wrap:wrap;}
+  .stat-card{
+    background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:12px 16px; min-width:150px;
+    box-shadow:var(--shadow-card);
+  }
+  .stat-card .lbl{font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--steel-500); font-family:'IBM Plex Mono';}
+  .stat-card .val{font-family:'IBM Plex Mono'; font-size:20px; font-weight:600; color:var(--navy-900); margin-top:4px;}
+  .stat-card-action{cursor:pointer; border-color:var(--orange-600); transition:background .12s ease;}
+  .stat-card-action:hover{background:var(--paper-100);}
+  .stat-card-hint{font-size:10.5px; color:var(--orange-600); margin-top:5px; font-weight:600;}
+  .stat-card-warn .val{color:var(--red-600);}
+  .stat-card-ok .val{color:var(--green-600);}
+
+  .filter-bar{display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; margin-bottom:12px; box-shadow:var(--shadow-card);}
+  .filter-bar .field{margin-bottom:0;}
+  .filter-bar .field label{font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; font-family:'IBM Plex Mono'; color:var(--steel-500);}
+  .filter-result-count{font-size:11.5px; color:var(--steel-500); margin-bottom:6px; font-family:'IBM Plex Mono';}
+
+  table.data-table{width:100%; border-collapse:collapse; background:#fff; box-shadow:var(--shadow-card); border-radius:var(--radius); overflow:hidden;}
+  table.data-table thead th{
+    background:var(--navy-900); color:#fff; text-align:left; padding:9px 10px; font-size:10.5px;
+    letter-spacing:0.06em; text-transform:uppercase; font-family:'IBM Plex Mono'; font-weight:500; white-space:nowrap;
+  }
+  table.data-table tbody td{
+    padding:9px 10px; border-bottom:1px solid var(--paper-200); font-size:13px; vertical-align:middle;
+  }
+  table.data-table tbody tr:hover{background:var(--paper-50);}
+  table.data-table td.num, table.data-table th.num{text-align:right; font-family:'IBM Plex Mono';}
+  table.data-table td.center{text-align:center;}
+  .center{text-align:center;}
+  .row-code{font-family:'IBM Plex Mono'; font-size:12px; color:var(--ink-600);}
+  .row-name{font-weight:600; color:var(--navy-900);}
+  .row-spec{font-size:11.5px; color:var(--steel-500); margin-top:2px;}
+
+  .gauge{width:110px; height:8px; background:var(--paper-200); border-radius:4px; overflow:hidden; position:relative; border:1px solid var(--line);}
+  .gauge .fill{height:100%; background:var(--green-600);}
+  .gauge.over .fill{background:var(--red-600);}
+  .gauge-lbl{font-family:'IBM Plex Mono'; font-size:10.5px; color:var(--steel-500); margin-top:3px;}
+
+  .stamp{
+    display:inline-block; font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:0.04em; text-transform:uppercase;
+    padding:3px 8px; border-radius:2px; border:1.5px dashed; transform:rotate(-2deg); font-weight:600; white-space:nowrap;
+  }
+  .stamp-grey{color:var(--steel-500); border-color:var(--steel-300); background:var(--steel-100);}
+  .stamp-amber{color:var(--amber-500); border-color:var(--amber-500); background:var(--amber-100);}
+  .stamp-blue{color:var(--navy-700); border-color:var(--navy-700); background:var(--steel-100);}
+  .stamp-green{color:var(--green-600); border-color:var(--green-600); background:var(--green-100);}
+  .stamp-red{color:var(--red-600); border-color:var(--red-600); background:var(--red-100);}
+
+  .row-actions{display:flex; gap:5px; white-space:nowrap;}
+  .icon-link{background:transparent; border:1px solid var(--line); color:var(--navy-900); padding:4px 8px; border-radius:2px; font-size:11.5px;}
+  .icon-link:hover{background:var(--paper-100);}
+
+  /* ---------- Modals ---------- */
+  .overlay{
+    display:none; position:fixed; inset:0; background:rgba(15,36,49,0.55); z-index:100;
+    align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto;
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:#fff; width:100%; max-width:560px; border-radius:var(--radius); box-shadow:0 20px 60px rgba(0,0,0,0.3);
+    border-top:4px solid var(--orange-600);
+  }
+  .modal.wide{max-width:820px;}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--line);}
+  .modal-head h2{font-size:17px; color:var(--navy-900);}
+  .modal-close{background:transparent; border:none; font-size:20px; color:var(--steel-500); line-height:1;}
+  .modal-body{padding:20px 22px; max-height:70vh; overflow-y:auto;}
+  .modal-foot{display:flex; justify-content:flex-end; gap:8px; padding:16px 22px; border-top:1px solid var(--line);}
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .grid-3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;}
+  textarea{resize:vertical; min-height:60px;}
+  .subhead{font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--steel-500); font-family:'IBM Plex Mono'; margin:18px 0 8px; padding-top:14px; border-top:1px solid var(--paper-200);}
+  .subhead:first-child{margin-top:0; padding-top:0; border-top:none;}
+  .mini-table{width:100%; border-collapse:collapse; margin-bottom:10px;}
+  .mini-table th{background:var(--paper-100); font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; font-family:'IBM Plex Mono'; padding:6px 8px; text-align:left; color:var(--ink-600);}
+  .mini-table td{padding:6px 8px; border-bottom:1px solid var(--paper-200); font-size:12.5px;}
+  .mini-table td.num{text-align:right; font-family:'IBM Plex Mono';}
+  .inline-form{display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; background:var(--paper-50); padding:10px; border-radius:2px; border:1px solid var(--paper-200);}
+  .inline-form .field{margin-bottom:0; flex:1; min-width:100px;}
+  .permission-note{font-size:11.5px; color:var(--steel-500); background:var(--paper-100); padding:8px 10px; border-radius:2px; margin-top:10px;}
+  .locked-field{background:var(--paper-100) !important; color:var(--steel-500);}
+  .role-table{width:100%; border-collapse:collapse; margin-top:8px;}
+  .role-table th, .role-table td{padding:7px 8px; border-bottom:1px solid var(--paper-200); font-size:12.5px; text-align:left;}
+  .role-table th{background:var(--paper-100); font-family:'IBM Plex Mono'; font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-600);}
+  .code-box{
+    background:var(--navy-900); color:#d7e2ec; font-family:'IBM Plex Mono'; font-size:11.5px; padding:14px;
+    border-radius:2px; max-height:260px; overflow:auto; white-space:pre; line-height:1.55;
+  }
+  .toast{
+    position:fixed; bottom:20px; right:20px; background:var(--navy-900); color:#fff; padding:11px 18px; border-radius:2px;
+    font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,0.25); z-index:300; display:flex; align-items:center; gap:10px;
+    border-left:4px solid var(--orange-600); transition:opacity .25s ease, transform .25s ease;
+  }
+  .toast.error{border-left-color:var(--red-600);}
+  .badge-count{
+    font-family:'IBM Plex Mono'; font-size:10px; background:var(--orange-600); color:#fff; padding:1px 6px; border-radius:10px; margin-left:6px;
+  }
+  @media (max-width:880px){
+    #layout{grid-template-columns:1fr;}
+    #sidebar{display:none;}
+    .grid-2, .grid-3{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-head">
+      <div class="eyebrow">TID CO., LTD — Kho vận dự án</div>
+      <h1>Theo dõi hàng hóa &amp; tình trạng dự án</h1>
+    </div>
+    <div class="login-body">
+      <div class="login-error" id="loginError"></div>
+      <div class="field">
+        <label for="loginUser">Người dùng</label>
+        <select id="loginUser"></select>
+      </div>
+      <div class="field">
+        <label for="loginPass">Mật khẩu</label>
+        <input type="password" id="loginPass" placeholder="Nhập mật khẩu">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="handleLogin()">Đăng nhập</button>
+      <div class="login-hint">Tài khoản mẫu: <b>admin</b> / mật khẩu <b>admin123</b> (vai trò Admin). Vào mục Người dùng sau khi đăng nhập để thêm tài khoản Sales / Kế toán / Viewer.</div>
+    </div>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="appShell">
+  <div id="topbar">
+    <div class="brand">
+      <div class="mark">TID</div>
+      <div class="title">THEO DÕI HÀNG HÓA DỰ ÁN<small>Goods &amp; Delivery Tracker</small></div>
+    </div>
+    <div class="spacer"></div>
+    <button class="icon-btn" onclick="openSyncModal()">⇅ Đồng bộ Firebase</button>
+    <button class="icon-btn" id="btnUsers" onclick="openUsersModal()" style="display:none;">👤 Người dùng</button>
+    <div class="user-chip">
+      <span id="topUserName"></span>
+      <span class="role-badge" id="topUserRole"></span>
+    </div>
+    <button class="icon-btn" onclick="handleLogout()">Đăng xuất</button>
+  </div>
+  <div id="layout">
+    <div id="sidebar">
+      <div class="side-head"><h2>Danh sách dự án</h2></div>
+      <div class="side-search"><input id="projSearch" placeholder="Tìm dự án..." oninput="renderProjectList()"></div>
+      <div id="projectList"></div>
+      <div class="side-foot" id="addProjectBtnWrap">
+        <button class="btn btn-dark btn-block btn-sm" onclick="openProjectModal()">+ Dự án mới</button>
+      </div>
+    </div>
+    <div id="main"></div>
+  </div>
+</div>
+
+<!-- PROJECT MODAL -->
+<div class="overlay" id="projectModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="projectModalTitle">Dự án mới</h2>
+      <button class="modal-close" onclick="closeModal('projectModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pjId">
+      <div class="grid-2">
+        <div class="field"><label>Mã dự án</label><input id="pjCode" placeholder="VD: TID-2026-014"></div>
+        <div class="field"><label>Trạng thái dự án</label>
+          <select id="pjStatus">
+            <option>Đang triển khai</option>
+            <option>Tạm dừng</option>
+            <option>Hoàn thành</option>
+            <option>Đã hủy</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Tên dự án</label><input id="pjName" placeholder="Tên công trình / dự án"></div>
+      <div class="grid-2">
+        <div class="field"><label>Chủ đầu tư / Khách hàng</label><input id="pjClient" placeholder="Tên chủ đầu tư"></div>
+        <div class="field"><label>Hệ thống</label><input id="pjSystem" placeholder="VD: Hệ thống điện, Cấp thoát nước, PCCC, HVAC..."></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Tiến độ triển khai dự án</label>
+          <select id="pjProgress">
+            <option>Chưa khởi công</option>
+            <option>Đang thi công phần thô</option>
+            <option>Đang thi công hoàn thiện</option>
+            <option>Đang lắp đặt thiết bị</option>
+            <option>Nghiệm thu bàn giao</option>
+            <option>Đã hoàn thành</option>
+            <option>Chậm tiến độ</option>
+            <option>Tạm dừng thi công</option>
+          </select>
+        </div>
+        <div class="field"><label>% hoàn thành</label><input type="number" min="0" max="100" id="pjProgressPct" placeholder="0 - 100"></div>
+      </div>
+      <div class="field"><label>Ghi chú</label><textarea id="pjNote" placeholder="Ghi chú thêm về dự án"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('projectModal')">Hủy</button>
+      <button class="btn btn-primary" onclick="saveProject()">Lưu dự án</button>
+    </div>
+  </div>
+</div>
+
+<!-- ITEM MODAL -->
+<div class="overlay" id="itemModal">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h2 id="itemModalTitle">Hàng hóa mới</h2>
+      <button class="modal-close" onclick="closeModal('itemModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="itId">
+      <div class="subhead">Thông tin sản phẩm</div>
+      <div class="grid-3">
+        <div class="field"><label>Tên sản phẩm</label><input id="itName" placeholder="VD: Máy bơm ly tâm trục ngang"></div>
+        <div class="field"><label>Hệ thống</label><input id="itSystem" placeholder="VD: Hệ thống điện, PCCC, HVAC..."></div>
+        <div class="field"><label>Mã hàng</label><input id="itCode" placeholder="VD: PUMP-CN-050" class="mono"></div>
+      </div>
+      <div class="field"><label>Thông số kỹ thuật</label><textarea id="itSpec" placeholder="VD: Q=50m3/h, H=32m, 3-phase, 380V, IP55..."></textarea></div>
+      <div class="grid-2">
+        <div class="field"><label>Thương hiệu</label><input id="itBrand" placeholder="VD: Grundfos, Ebara..."></div>
+        <div class="field"><label>Xuất xứ</label><input id="itOrigin" placeholder="VD: Đức, Nhật Bản, Việt Nam..."></div>
+      </div>
+      <div class="grid-3">
+        <div class="field"><label>Số lượng hợp đồng</label><input type="number" min="0" step="any" id="itQty" oninput="recalcItemTotal()"></div>
+        <div class="field"><label>Đơn vị tính</label><input id="itUnit" placeholder="cái / bộ / m..."></div>
+        <div class="field"><label>Đơn giá (VNĐ)</label><input type="number" min="0" step="any" id="itPrice" oninput="recalcItemTotal()"></div>
+      </div>
+      <div class="field"><label>Thành tiền (tự động = SL hợp đồng × Đơn giá)</label><input id="itTotal" class="mono locked-field" readonly></div>
+      <div class="grid-2">
+        <div class="field"><label>Chứng từ cung cấp</label><input id="itDoc" placeholder="VD: CO/CQ, Invoice số..., Packing list..."></div>
+        <div class="field"><label>Tình trạng T&amp;C (tiến độ / chất lượng)</label>
+          <select id="itStatus">
+            <option>Chưa triển khai</option>
+            <option>Đang đặt hàng</option>
+            <option>Đang giao hàng</option>
+            <option>Đã giao đủ</option>
+            <option>Trễ tiến độ</option>
+            <option>Tạm ngưng</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>Tiến độ nhập hàng</label>
+        <select id="itImportStatus">
+          <option>Chờ duyệt</option>
+          <option>Đang load hàng</option>
+          <option>Kho SG</option>
+          <option>Kho HN</option>
+          <option>Ngưng nhập</option>
+        </select>
+      </div>
+      <div class="permission-note" id="itemFieldNote"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('itemModal')">Hủy</button>
+      <button class="btn btn-primary" onclick="saveItem()">Lưu hàng hóa</button>
+    </div>
+  </div>
+</div>
+
+<!-- ITEM DETAIL MODAL (PO + Deliveries) -->
+<div class="overlay" id="detailModal">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div>
+        <h2 id="detailTitle">Chi tiết hàng hóa</h2>
+        <div class="row-code" id="detailCode"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="stat-row" id="detailStats"></div>
+
+      <div class="subhead">Số lượng PO đặt hàng (các đợt) <span id="poCountBadge"></span></div>
+      <table class="mini-table">
+        <thead><tr><th>Số PO</th><th>Ngày đặt</th><th class="num">Số lượng</th><th></th></tr></thead>
+        <tbody id="poTableBody"></tbody>
+      </table>
+      <div class="inline-form" id="poFormWrap">
+        <div class="field"><label>Số PO</label><input id="poCode" placeholder="PO-2026-xxx"></div>
+        <div class="field"><label>Ngày đặt</label><input type="date" id="poDate"></div>
+        <div class="field"><label>Số lượng</label><input type="number" min="0" step="any" id="poQty"></div>
+        <button class="btn btn-dark btn-sm" onclick="addPO()">+ Thêm PO</button>
+      </div>
+
+      <div class="subhead">Số lượng &amp; giá trị giao hàng (các đợt) <span id="dvCountBadge"></span></div>
+      <table class="mini-table">
+        <thead><tr><th>Đợt giao</th><th>Ngày giao</th><th class="num">Số lượng</th><th class="num">Giá trị (VNĐ)</th><th>Ghi chú</th><th></th></tr></thead>
+        <tbody id="dvTableBody"></tbody>
+      </table>
+      <div class="inline-form" id="dvFormWrap">
+        <div class="field"><label>Tên đợt giao</label><input id="dvBatch" placeholder="Đợt 1"></div>
+        <div class="field"><label>Ngày giao</label><input type="date" id="dvDate"></div>
+        <div class="field"><label>Số lượng</label><input type="number" min="0" step="any" id="dvQty"></div>
+        <div class="field"><label>Ghi chú</label><input id="dvNote" placeholder="Số vận đơn / ghi chú"></div>
+        <button class="btn btn-dark btn-sm" onclick="addDelivery()">+ Thêm đợt giao</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('detailModal')">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELIVERY LIST / FILTER / EXPORT MODAL -->
+<div class="overlay" id="deliveryListModal">
+  <div class="modal wide" style="max-width:960px;">
+    <div class="modal-head">
+      <h2>Các đợt giao hàng</h2>
+      <button class="modal-close" onclick="closeModal('deliveryListModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="dlProjectId">
+      <div class="filter-bar" style="margin-bottom:14px;">
+        <div class="field" style="min-width:200px;">
+          <label>Tìm kiếm</label>
+          <input id="dlSearch" placeholder="Tên sản phẩm / mã hàng / tên đợt..." oninput="onDeliveryListFilterChange()">
+        </div>
+        <div class="field" style="min-width:170px;">
+          <label>Hệ thống</label>
+          <select id="dlSystem" onchange="onDeliveryListFilterChange()"><option value="">Tất cả hệ thống</option></select>
+        </div>
+        <div class="field" style="min-width:150px;">
+          <label>Từ ngày</label>
+          <input type="date" id="dlDateFrom" onchange="onDeliveryListFilterChange()">
+        </div>
+        <div class="field" style="min-width:150px;">
+          <label>Đến ngày</label>
+          <input type="date" id="dlDateTo" onchange="onDeliveryListFilterChange()">
+        </div>
+        <button class="btn btn-ghost btn-sm" style="align-self:flex-end;" onclick="clearDeliveryListFilters()">Xóa lọc</button>
+        <button class="btn btn-primary btn-sm" style="align-self:flex-end;" onclick="exportDeliveryExcel()">⇩ Xuất Excel</button>
+      </div>
+      <div class="stat-row" id="dlStats"></div>
+      <div id="dlTableWrap"></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('deliveryListModal')">Đóng</button></div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="overlay" id="paymentModal">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h2>Giá trị thanh toán các đợt</h2>
+      <button class="modal-close" onclick="closeModal('paymentModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="paymentProjectId">
+      <div class="stat-row" id="paymentStats"></div>
+
+      <div class="subhead">Các đợt thanh toán <span id="paymentCountBadge"></span></div>
+      <table class="mini-table">
+        <thead><tr><th>Đợt thanh toán</th><th>Ngày thanh toán</th><th class="num">Giá trị (VNĐ)</th><th>Ghi chú</th><th></th></tr></thead>
+        <tbody id="paymentTableBody"></tbody>
+      </table>
+      <div class="inline-form" id="paymentFormWrap">
+        <div class="field"><label>Tên đợt thanh toán</label><input id="pmBatch" placeholder="Đợt 1"></div>
+        <div class="field"><label>Ngày thanh toán</label><input type="date" id="pmDate"></div>
+        <div class="field"><label>Giá trị (VNĐ)</label><input type="number" min="0" step="any" id="pmAmount"></div>
+        <div class="field"><label>Ghi chú</label><input id="pmNote" placeholder="Số UNC / ghi chú"></div>
+        <button class="btn btn-dark btn-sm" onclick="addPayment()">+ Thêm đợt thanh toán</button>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('paymentModal')">Đóng</button></div>
+  </div>
+</div>
+
+<!-- IMPORT EXCEL MODAL -->
+<div class="overlay" id="importModal">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h2>Nhập hàng hóa từ Excel</h2>
+      <button class="modal-close" onclick="closeModal('importModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="importProjectId">
+      <p style="font-size:12.5px; color:var(--ink-600); line-height:1.7;">
+        Tải file mẫu, điền dữ liệu hàng hóa (mỗi dòng 1 mặt hàng), rồi tải file lên để nhập hàng loạt vào dự án hiện tại.
+      </p>
+      <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <button class="btn btn-ghost btn-sm" onclick="downloadImportTemplate()">⇩ Tải file mẫu (.xlsx)</button>
+      </div>
+      <div class="field">
+        <label>Chọn file Excel (.xlsx, .xls, .csv)</label>
+        <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" onchange="handleImportFile(event)">
+      </div>
+      <div id="importPreviewWrap" style="display:none; margin-top:14px;">
+        <div class="subhead">Xem trước dữ liệu</div>
+        <div class="permission-note" id="importSummary"></div>
+        <table class="mini-table" id="importPreviewTable"></table>
+      </div>
+      <div class="permission-note" id="importFieldNote" style="margin-top:12px;"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('importModal')">Hủy</button>
+      <button class="btn btn-primary" id="importConfirmBtn" onclick="confirmImport()" disabled>Nhập dữ liệu</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULK DELIVERY UPDATE MODAL -->
+<div class="overlay" id="deliveryUpdateModal">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h2>Cập nhật giao hàng</h2>
+      <button class="modal-close" onclick="closeModal('deliveryUpdateModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="dvUpdProjectId">
+      <p style="font-size:12.5px; color:var(--ink-600); line-height:1.7;">
+        Chọn hàng hóa cần giao và nhập số lượng giao đợt này. Có thể chọn nhiều hàng hóa cùng lúc.
+      </p>
+      <div class="grid-3">
+        <div class="field"><label>Tên đợt giao</label><input id="dvUpdBatch" placeholder="Đợt 1"></div>
+        <div class="field"><label>Ngày giao</label><input type="date" id="dvUpdDate"></div>
+        <div class="field"><label>Ghi chú chung</label><input id="dvUpdNote" placeholder="Số vận đơn / ghi chú"></div>
+      </div>
+      <div class="subhead">Chọn hàng hóa &amp; số lượng giao</div>
+      <table class="mini-table" id="dvUpdTable">
+        <thead><tr><th style="width:28px;"></th><th>Sản phẩm</th><th>Hệ thống</th><th class="num">SL còn lại</th><th class="num" style="width:120px;">SL giao đợt này</th></tr></thead>
+        <tbody id="dvUpdTableBody"></tbody>
+      </table>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('deliveryUpdateModal')">Hủy</button>
+      <button class="btn btn-primary" onclick="submitDeliveryUpdate()">Lưu cập nhật giao hàng</button>
+    </div>
+  </div>
+</div>
+
+<!-- BULK PO UPDATE MODAL -->
+<div class="overlay" id="poUpdateModal">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h2>Cập nhật SL PO đặt hàng</h2>
+      <button class="modal-close" onclick="closeModal('poUpdateModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="poUpdProjectId">
+      <p style="font-size:12.5px; color:var(--ink-600); line-height:1.7;">
+        Chọn hàng hóa cần đặt PO và nhập số lượng đặt đợt này. Có thể chọn nhiều hàng hóa cùng lúc.
+      </p>
+      <div class="grid-3">
+        <div class="field"><label>Số PO</label><input id="poUpdCode" placeholder="PO-2026-xxx"></div>
+        <div class="field"><label>Ngày đặt</label><input type="date" id="poUpdDate"></div>
+        <div class="field"></div>
+      </div>
+      <div class="subhead">Chọn hàng hóa &amp; số lượng đặt PO</div>
+      <table class="mini-table" id="poUpdTable">
+        <thead><tr><th style="width:28px;"></th><th>Sản phẩm</th><th>Hệ thống</th><th class="num">SL hợp đồng</th><th class="num">SL PO đã đặt</th><th class="num" style="width:120px;">SL đặt đợt này</th></tr></thead>
+        <tbody id="poUpdTableBody"></tbody>
+      </table>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal('poUpdateModal')">Hủy</button>
+      <button class="btn btn-primary" onclick="submitPOUpdate()">Lưu cập nhật PO</button>
+    </div>
+  </div>
+</div>
+
+<!-- USERS MODAL -->
+<div class="overlay" id="usersModal">
+  <div class="modal wide">
+    <div class="modal-head"><h2>Quản lý người dùng &amp; phân quyền</h2><button class="modal-close" onclick="closeModal('usersModal')">✕</button></div>
+    <div class="modal-body">
+      <table class="mini-table" id="usersTableWrap">
+        <thead><tr><th>Tên hiển thị</th><th>Tài khoản</th><th>Vai trò</th><th></th></tr></thead>
+        <tbody id="usersTableBody"></tbody>
+      </table>
+      <div class="inline-form">
+        <div class="field"><label>Tên hiển thị</label><input id="usrName" placeholder="Nguyễn Văn A"></div>
+        <div class="field"><label>Tài khoản đăng nhập</label><input id="usrUsername" placeholder="a.nguyen"></div>
+        <div class="field"><label>Mật khẩu</label><input id="usrPassword" placeholder="Mật khẩu"></div>
+        <div class="field"><label>Vai trò</label>
+          <select id="usrRole">
+            <option>Sales</option>
+            <option>Kế toán</option>
+            <option>Viewer</option>
+            <option>Admin</option>
+          </select>
+        </div>
+        <button class="btn btn-dark btn-sm" onclick="addUser()">+ Thêm người dùng</button>
+      </div>
+      <div class="subhead">Ma trận phân quyền <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--steel-500);">(Admin luôn có toàn quyền; tick/bỏ tick để tùy chỉnh cho Sales / Kế toán / Viewer)</span></div>
+      <table class="role-table" id="permTable">
+        <thead><tr><th>Chức năng</th><th>Admin</th><th>Sales</th><th>Kế toán</th><th>Viewer</th></tr></thead>
+        <tbody id="permTableBody"></tbody>
+      </table>
+      <button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="resetPermissions()">Khôi phục phân quyền mặc định</button>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('usersModal')">Đóng</button></div>
+  </div>
+</div>
+
+<!-- SYNC MODAL -->
+<div class="overlay" id="syncModal">
+  <div class="modal wide">
+    <div class="modal-head"><h2>Đồng bộ Firebase (thời gian thực)</h2><button class="modal-close" onclick="closeModal('syncModal')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px; color:var(--ink-600); line-height:1.6;">Kết nối với Firebase Realtime Database để nhiều người dùng cùng thấy thay đổi của nhau <b>ngay lập tức</b> (không cần chờ đồng bộ theo chu kỳ). Miễn phí cho quy mô nội bộ như dự án này.</p>
+
+      <div class="subhead">Bước 1 — Tạo project Firebase (chỉ cần làm 1 lần)</div>
+      <p style="font-size:12.5px; color:var(--ink-600); line-height:1.7;">
+        1. Vào <b>console.firebase.google.com</b> → Tạo project mới (miễn phí).<br>
+        2. Trong menu trái, vào <b>Build → Realtime Database</b> → Tạo database (chọn khu vực gần Việt Nam, ví dụ Singapore/asia-southeast1) → chọn chế độ bắt đầu ở "Test mode" (sẽ khóa lại ở bước dưới).<br>
+        3. Vào <b>Build → Authentication → Sign-in method</b> → bật <b>Anonymous</b> (giúp chỉ ai mở đúng app này mới đọc/ghi được dữ liệu, chặn người lạ trên mạng).<br>
+        4. Vào <b>Realtime Database → tab Rules</b>, dán quy tắc bảo mật bên dưới rồi Publish.<br>
+        5. Vào <b>⚙️ Project settings → General</b>, cuộn xuống mục "Your apps" → bấm biểu tượng Web <code>&lt;/&gt;</code> để tạo 1 Web App → sao chép đoạn <b>firebaseConfig</b> được cấp.
+      </p>
+      <div class="code-box" id="firebaseRulesCode"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="copyRules()">📋 Sao chép quy tắc bảo mật (Rules)</button>
+
+      <div class="subhead">Bước 2 — Dán cấu hình Firebase</div>
+      <p style="font-size:12px; color:var(--steel-500);">Dán nguyên đoạn <code>const firebaseConfig = { ... }</code> (hoặc chỉ phần <code>{ ... }</code>) mà Firebase đã cấp cho bạn ở bước 1.5.</p>
+      <div class="field"><textarea id="firebaseConfigInput" style="min-height:110px; font-family:'IBM Plex Mono'; font-size:12px;" placeholder='const firebaseConfig = {
+  apiKey: "...",
+  authDomain: "...",
+  databaseURL: "https://xxxx.asia-southeast1.firebasedatabase.app",
+  projectId: "...",
+  appId: "..."
+};'></textarea></div>
+      <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" onclick="connectFirebase()">🔌 Kết nối &amp; Bật đồng bộ thời gian thực</button>
+        <button class="btn btn-danger btn-sm" onclick="disconnectFirebase()">Ngắt kết nối</button>
+      </div>
+      <div class="permission-note" id="syncStatusNote">Chưa kết nối Firebase — dữ liệu chỉ đang lưu trên trình duyệt này.</div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('syncModal')">Đóng</button></div>
+  </div>
+</div>
+
+<script>
+/* ================= DATA LAYER ================= */
+const STORAGE_KEY = 'tid_goods_tracker_v1';
+
+function uid(prefix){ return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function defaultState(){
+  const demoProjId = uid('pj');
+  const itemId1 = uid('it');
+  const itemId2 = uid('it');
+  return {
+    users: [
+      {id:uid('u'), username:'admin', password:'admin123', role:'Admin', name:'Quản trị viên'},
+    ],
+    projects: [
+      {id:demoProjId, code:'[MẪU]-2026-001', name:'Dự án mẫu — Nhà máy xử lý nước ABC', client:'Công ty CP ABC', system:'Hệ thống xử lý nước thải', status:'Đang triển khai', progress:'Đang lắp đặt thiết bị', progressPct:60, note:'Dự án mẫu để tham khảo, có thể xóa.'}
+    ],
+    items: [
+      {id:itemId1, projectId:demoProjId, name:'Máy bơm ly tâm trục ngang', code:'PUMP-CN-050', system:'Hệ thống cơ khí', brand:'Grundfos', origin:'Đan Mạch', spec:'Q=50m3/h, H=32m, 3 pha, 380V, IP55', qty:4, unit:'bộ', price:38500000, doc:'CO/CQ, Invoice INV-0021', status:'Đang giao hàng', importStatus:'Kho SG'},
+      {id:itemId2, projectId:demoProjId, name:'Ống thép mạ kẽm D114', code:'PIPE-GS-114', system:'Hệ thống cấp thoát nước', brand:'Hoa Sen', origin:'Việt Nam', spec:'D114mm, dày 4.5mm, TCVN 6117', qty:800, unit:'m', price:295000, doc:'CO/CQ, Packing list PL-0012', status:'Đã giao đủ', importStatus:'Kho SG'},
+    ],
+    poBatches: [
+      {id:uid('po'), itemId:itemId1, poCode:'PO-2026-014', date:'2026-05-10', qty:4},
+      {id:uid('po'), itemId:itemId2, poCode:'PO-2026-009', date:'2026-04-02', qty:800},
+    ],
+    deliveries: [
+      {id:uid('dv'), itemId:itemId1, batchNo:'Đợt 1', date:'2026-06-20', qty:2, note:'Giao kho công trình'},
+      {id:uid('dv'), itemId:itemId2, batchNo:'Đợt 1', date:'2026-04-25', qty:500, note:''},
+      {id:uid('dv'), itemId:itemId2, batchNo:'Đợt 2', date:'2026-05-15', qty:300, note:'Giao đủ'},
+    ],
+    payments: [
+      {id:uid('pm'), projectId:demoProjId, batchNo:'Đợt 1', date:'2026-05-01', amount:100000000, note:'Tạm ứng theo hợp đồng'},
+    ],
+    firebase: {config:null, enabled:false},
+    permissions: defaultPermissions(),
+    deletedIds: {projects:[], items:[], poBatches:[], deliveries:[], payments:[], users:[]},
+    session: {userId:null},
+    ui: {currentProjectId:demoProjId}
+  };
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
+}
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+let state = loadState() || defaultState();
+if(!state.ui) state.ui = {currentProjectId: (state.projects[0]||{}).id || null};
+if(!state.ui.itemFilters) state.ui.itemFilters = {search:'', system:'', status:'', delivery:''};
+if(!state.firebase) state.firebase = {config:null, enabled:false};
+if(!state.permissions) state.permissions = defaultPermissions();
+if(!state.payments) state.payments = [];
+if(!state.deletedIds) state.deletedIds = {projects:[], items:[], poBatches:[], deliveries:[], payments:[], users:[]};
+['projects','items','poBatches','deliveries','payments','users'].forEach(t=>{ if(!state.deletedIds[t]) state.deletedIds[t] = []; });
+function markDeleted(table, id){
+  if(!state.deletedIds[table]) state.deletedIds[table] = [];
+  if(!state.deletedIds[table].includes(id)) state.deletedIds[table].push(id);
+}
+function touch(record){ record.updatedAt = Date.now(); return record; }
+state.projects.forEach(p=>{ if(p.system===undefined) p.system=''; if(p.progress===undefined) p.progress='Chưa khởi công'; if(p.progressPct===undefined) p.progressPct=0; });
+state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; });
+
+/* ================= PERMISSIONS ================= */
+function currentUser(){ return state.users.find(u => u.id === state.session.userId); }
+const ROLE_LIST = ['Admin','Sales','Kế toán','Viewer'];
+const PERMISSION_ACTIONS = [
+  {key:'manageProjects', label:'Thêm / sửa dự án'},
+  {key:'deleteProjects', label:'Xóa dự án'},
+  {key:'manageItems', label:'Thêm / sửa hàng hóa'},
+  {key:'deleteItems', label:'Xóa hàng hóa'},
+  {key:'editFinance', label:'Sửa đơn giá & chứng từ cung cấp'},
+  {key:'managePO', label:'Quản lý PO đặt hàng'},
+  {key:'manageDeliveries', label:'Quản lý / cập nhật giao hàng'},
+  {key:'managePayments', label:'Quản lý giá trị thanh toán'},
+  {key:'manageUsers', label:'Quản lý người dùng'},
+  {key:'manageSettings', label:'Cấu hình đồng bộ Google Sheets'},
+];
+function defaultPermissions(){
+  return {
+    manageProjects: ['Admin','Sales'],
+    deleteProjects: ['Admin'],
+    manageItems: ['Admin','Sales','Kế toán'],
+    deleteItems: ['Admin','Sales'],
+    editFinance: ['Admin','Kế toán'],
+    managePO: ['Admin','Sales'],
+    manageDeliveries: ['Admin','Sales'],
+    managePayments: ['Admin','Kế toán'],
+    manageUsers: ['Admin'],
+    manageSettings: ['Admin'],
+  };
+}
+function can(action){
+  const u = currentUser();
+  if(!u) return false;
+  if(u.role === 'Admin') return true;
+  return (state.permissions[action] || []).includes(u.role);
+}
+
+/* ================= HELPERS ================= */
+function fmtMoney(n){
+  n = Number(n)||0;
+  return n.toLocaleString('vi-VN');
+}
+function fmtNum(n){
+  n = Number(n)||0;
+  return n.toLocaleString('vi-VN', {maximumFractionDigits:2});
+}
+function sum(arr, fn){ return arr.reduce((a,x)=>a+(Number(fn(x))||0),0); }
+function itemPOTotal(itemId){ return sum(state.poBatches.filter(p=>p.itemId===itemId), p=>p.qty); }
+function itemDeliveredQty(itemId){ return sum(state.deliveries.filter(d=>d.itemId===itemId), d=>d.qty); }
+function itemDeliveredValue(itemId, price){ return itemDeliveredQty(itemId) * price; }
+function projectPaidTotal(projectId){ return sum(state.payments.filter(p=>p.projectId===projectId), p=>p.amount); }
+function statusStampClass(status){
+  const map = {
+    'Chưa triển khai':'stamp-grey', 'Đang đặt hàng':'stamp-amber', 'Đang giao hàng':'stamp-blue',
+    'Đã giao đủ':'stamp-green', 'Trễ tiến độ':'stamp-red', 'Tạm ngưng':'stamp-red'
+  };
+  return map[status] || 'stamp-grey';
+}
+function projStatusStampClass(status){
+  const map = {'Đang triển khai':'stamp-blue','Tạm dừng':'stamp-amber','Hoàn thành':'stamp-green','Đã hủy':'stamp-red'};
+  return map[status] || 'stamp-grey';
+}
+const IMPORT_STATUS_OPTIONS = ['Chờ duyệt','Đang load hàng','Kho SG','Kho HN','Ngưng nhập'];
+function importStatusStampClass(status){
+  const map = {'Chờ duyệt':'stamp-amber','Đang load hàng':'stamp-blue','Kho SG':'stamp-green','Kho HN':'stamp-green','Ngưng nhập':'stamp-red'};
+  return map[status] || 'stamp-grey';
+}
+function toast(msg, isError){
+  const t = document.createElement('div');
+  t.className = 'toast' + (isError ? ' error' : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(6px)'; setTimeout(()=>t.remove(),250); }, 2400);
+}
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+/* ================= LOGIN ================= */
+function renderLoginUsers(){
+  const sel = document.getElementById('loginUser');
+  sel.innerHTML = state.users.map(u => `<option value="${u.id}">${u.name} — ${u.role}</option>`).join('');
+}
+function handleLogin(){
+  const uidVal = document.getElementById('loginUser').value;
+  const pass = document.getElementById('loginPass').value;
+  const user = state.users.find(u=>u.id===uidVal);
+  const errBox = document.getElementById('loginError');
+  if(!user || user.password !== pass){
+    errBox.textContent = 'Sai mật khẩu. Vui lòng thử lại.';
+    errBox.style.display = 'block';
+    return;
+  }
+  errBox.style.display = 'none';
+  state.session.userId = user.id;
+  saveState();
+  boot();
+}
+function handleLogout(){
+  state.session.userId = null;
+  saveState();
+  document.getElementById('loginPass').value = '';
+  boot();
+}
+
+/* ================= RENDER: SHELL ================= */
+function boot(){
+  const user = currentUser();
+  if(!user){
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('appShell').style.display = 'none';
+    renderLoginUsers();
+    return;
+  }
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appShell').style.display = 'grid';
+  document.getElementById('topUserName').textContent = user.name;
+  document.getElementById('topUserRole').textContent = user.role;
+  document.getElementById('btnUsers').style.display = can('manageUsers') ? 'flex' : 'none';
+  document.getElementById('addProjectBtnWrap').style.display = can('manageProjects') ? 'block' : 'none';
+  renderProjectList();
+  renderMain();
+}
+
+/* ================= RENDER: PROJECT LIST ================= */
+function renderProjectList(){
+  const q = (document.getElementById('projSearch').value || '').toLowerCase();
+  const list = document.getElementById('projectList');
+  const filtered = state.projects.filter(p => (p.name+p.code).toLowerCase().includes(q));
+  if(filtered.length === 0){
+    list.innerHTML = `<div style="padding:16px; font-size:12.5px; color:var(--steel-300);">Không tìm thấy dự án nào.</div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(p => `
+    <div class="proj-item ${p.id===state.ui.currentProjectId?'active':''}" onclick="selectProject('${p.id}')">
+      <div class="p-code">${p.code}</div>
+      <div class="p-name">${p.name}</div>
+      ${p.system ? `<div style="font-size:11px; color:var(--steel-300); margin-top:3px;">⚙ ${p.system}</div>` : ''}
+      <div class="p-status" style="display:flex; gap:5px; flex-wrap:wrap; margin-top:6px;">
+        <span class="stamp ${projStatusStampClass(p.status)}">${p.status}</span>
+        <span class="stamp stamp-blue">${p.progress||'—'}${p.progressPct!==undefined && p.progressPct!=='' ? ' · '+p.progressPct+'%' : ''}</span>
+      </div>
+    </div>
+  `).join('');
+}
+function selectProject(id){
+  state.ui.currentProjectId = id;
+  state.ui.itemFilters = {search:'', system:'', status:'', delivery:''};
+  saveState();
+  renderProjectList();
+  renderMain();
+}
+
+/* ================= RENDER: MAIN (ITEM TABLE) ================= */
+function renderMain(){
+  const main = document.getElementById('main');
+  const proj = state.projects.find(p=>p.id===state.ui.currentProjectId);
+  if(!proj){
+    main.innerHTML = `
+      <div class="empty-state">
+        <h3>Chưa có dự án nào được chọn</h3>
+        <p>Tạo dự án đầu tiên để bắt đầu theo dõi hàng hóa: số lượng đặt hàng, các đợt giao hàng và tình trạng tiến độ.</p>
+        ${can('manageProjects') ? `<button class="btn btn-primary" onclick="openProjectModal()">+ Tạo dự án mới</button>` : ''}
+      </div>`;
+    return;
+  }
+  const items = state.items.filter(i=>i.projectId===proj.id);
+  const totalContractValue = sum(items, i=>i.qty*i.price);
+  const totalDeliveredValue = sum(items, i=>itemDeliveredValue(i.id, i.price));
+  const totalRemainingQty = sum(items, i=>itemPOTotal(i.id) - itemDeliveredQty(i.id));
+  const paidTotal = projectPaidTotal(proj.id);
+  const remainingUnpaid = totalDeliveredValue - paidTotal;
+
+  main.innerHTML = `
+    <div class="page-head">
+      <div>
+        <div class="titles">
+          <h1>${proj.name}</h1>
+          <span class="p-code-tag">${proj.code}</span>
+          <span class="stamp ${projStatusStampClass(proj.status)}">${proj.status}</span>
+          <span class="stamp stamp-blue">${proj.progress||'—'}${proj.progressPct!==undefined && proj.progressPct!=='' ? ' · '+proj.progressPct+'%' : ''}</span>
+        </div>
+        <div class="proj-meta">
+          <div class="m">Chủ đầu tư: <b>${proj.client||'—'}</b></div>
+          <div class="m">Hệ thống: <b>${proj.system||'—'}</b></div>
+          <div class="m">Số mặt hàng: <b>${items.length}</b></div>
+        </div>
+      </div>
+      <div class="actions">
+        ${can('manageProjects') ? `<button class="btn btn-ghost btn-sm" onclick="openProjectModal('${proj.id}')">Sửa dự án</button>` : ''}
+        ${can('deleteProjects') ? `<button class="btn btn-danger btn-sm" onclick="deleteProject('${proj.id}')">Xóa dự án</button>` : ''}
+        ${can('manageDeliveries') ? `<button class="btn btn-ghost btn-sm" onclick="openDeliveryUpdateModal('${proj.id}')">🚚 Cập nhật giao hàng</button>` : ''}
+        ${can('managePO') ? `<button class="btn btn-ghost btn-sm" onclick="openPOUpdateModal('${proj.id}')">📋 Cập nhật PO đặt hàng</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="openDeliveryListModal('${proj.id}')">📦 Đợt giao hàng</button>
+        ${can('manageItems') ? `<button class="btn btn-ghost btn-sm" onclick="openImportModal('${proj.id}')">⇪ Nhập từ Excel</button>` : ''}
+        ${can('manageItems') ? `<button class="btn btn-primary btn-sm" onclick="openItemModal(null,'${proj.id}')">+ Thêm hàng hóa</button>` : ''}
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card"><div class="lbl">Giá trị hợp đồng</div><div class="val">${fmtMoney(totalContractValue)}</div></div>
+      <div class="stat-card"><div class="lbl">Giá trị đã giao</div><div class="val">${fmtMoney(totalDeliveredValue)}</div></div>
+      <div class="stat-card"><div class="lbl">Tổng SL còn lại</div><div class="val">${fmtNum(totalRemainingQty)}</div></div>
+      <div class="stat-card stat-card-action" onclick="openPaymentModal('${proj.id}')">
+        <div class="lbl">Giá trị thanh toán các đợt</div>
+        <div class="val">${fmtMoney(paidTotal)}</div>
+        <div class="stat-card-hint">👆 Bấm để xem / cập nhật</div>
+      </div>
+      <div class="stat-card ${remainingUnpaid>0?'stat-card-warn':'stat-card-ok'}">
+        <div class="lbl">Giá trị còn lại chưa thanh toán</div>
+        <div class="val">${fmtMoney(remainingUnpaid)}</div>
+      </div>
+    </div>
+
+    ${items.length === 0 ? '' : renderFilterBarHtml(items)}
+    <div id="itemsTableContainer"></div>
+  `;
+  renderItemsTable();
+}
+
+function distinctItemSystems(items){
+  return [...new Set(items.map(i=>(i.system||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'vi'));
+}
+const ITEM_STATUS_OPTIONS = ['Chưa triển khai','Đang đặt hàng','Đang giao hàng','Đã giao đủ','Trễ tiến độ','Tạm ngưng'];
+
+function renderFilterBarHtml(items){
+  const f = state.ui.itemFilters || {search:'', system:'', status:''};
+  const systems = distinctItemSystems(items);
+  return `
+    <div class="filter-bar">
+      <div class="field" style="min-width:220px;">
+        <label>Tìm kiếm</label>
+        <input id="fltSearch" placeholder="Tên sản phẩm / mã hàng..." value="${(f.search||'').replace(/"/g,'&quot;')}" oninput="onItemFilterChange()">
+      </div>
+      <div class="field" style="min-width:180px;">
+        <label>Hệ thống</label>
+        <select id="fltSystem" onchange="onItemFilterChange()">
+          <option value="">Tất cả hệ thống</option>
+          ${systems.map(s=>`<option value="${s}" ${f.system===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field" style="min-width:180px;">
+        <label>Tình trạng T&amp;C</label>
+        <select id="fltStatus" onchange="onItemFilterChange()">
+          <option value="">Tất cả trạng thái</option>
+          ${ITEM_STATUS_OPTIONS.map(s=>`<option value="${s}" ${f.status===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field" style="min-width:190px;">
+        <label>Khối lượng đã giao</label>
+        <select id="fltDelivery" onchange="onItemFilterChange()">
+          <option value="">Tất cả</option>
+          <option value="none" ${f.delivery==='none'?'selected':''}>Chưa giao</option>
+          <option value="partial" ${f.delivery==='partial'?'selected':''}>Đã giao một phần</option>
+          <option value="full" ${f.delivery==='full'?'selected':''}>Đã giao đủ</option>
+          <option value="over" ${f.delivery==='over'?'selected':''}>Giao vượt số lượng</option>
+        </select>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="align-self:flex-end;" onclick="clearItemFilters()">Xóa lọc</button>
+    </div>
+  `;
+}
+function onItemFilterChange(){
+  state.ui.itemFilters = {
+    search: document.getElementById('fltSearch').value,
+    system: document.getElementById('fltSystem').value,
+    status: document.getElementById('fltStatus').value,
+    delivery: document.getElementById('fltDelivery').value,
+  };
+  saveState();
+  renderItemsTable();
+}
+function clearItemFilters(){
+  state.ui.itemFilters = {search:'', system:'', status:'', delivery:''};
+  saveState();
+  renderMain();
+}
+function applyItemFilters(items){
+  const f = state.ui.itemFilters || {search:'', system:'', status:'', delivery:''};
+  const q = (f.search||'').trim().toLowerCase();
+  return items.filter(it=>{
+    if(q && !((it.name+it.code).toLowerCase().includes(q))) return false;
+    if(f.system && (it.system||'') !== f.system) return false;
+    if(f.status && (it.status||'') !== f.status) return false;
+    if(f.delivery){
+      const delivered = itemDeliveredQty(it.id);
+      if(f.delivery === 'none' && !(delivered <= 0)) return false;
+      if(f.delivery === 'partial' && !(delivered > 0 && delivered < it.qty)) return false;
+      if(f.delivery === 'full' && !(delivered > 0 && delivered === it.qty)) return false;
+      if(f.delivery === 'over' && !(delivered > it.qty && it.qty > 0)) return false;
+    }
+    return true;
+  });
+}
+function renderItemsTable(){
+  const proj = state.projects.find(p=>p.id===state.ui.currentProjectId);
+  const container = document.getElementById('itemsTableContainer');
+  if(!proj || !container) return;
+  const allItems = state.items.filter(i=>i.projectId===proj.id);
+  const items = applyItemFilters(allItems);
+
+  if(allItems.length === 0){
+    container.innerHTML = `
+      <div class="empty-state">
+        <h3>Chưa có hàng hóa nào trong dự án này</h3>
+        <p>Thêm mặt hàng để bắt đầu theo dõi số lượng, đơn giá, PO đặt hàng và tiến độ giao hàng.</p>
+        ${can('manageItems') ? `<button class="btn btn-primary" onclick="openItemModal(null,'${proj.id}')">+ Thêm hàng hóa</button>` : ''}
+      </div>`;
+    return;
+  }
+  if(items.length === 0){
+    container.innerHTML = `
+      <div class="empty-state">
+        <h3>Không có hàng hóa nào khớp bộ lọc</h3>
+        <p>Thử điều chỉnh từ khóa tìm kiếm hoặc bỏ bớt điều kiện lọc.</p>
+        <button class="btn btn-ghost btn-sm" onclick="clearItemFilters()">Xóa lọc</button>
+      </div>`;
+    return;
+  }
+  container.innerHTML = `
+    <div class="filter-result-count">Hiển thị ${items.length} / ${allItems.length} mặt hàng</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width:44px;">STT</th>
+          <th>Sản phẩm</th>
+          <th>Hệ thống</th>
+          <th>Thương hiệu</th>
+          <th>Xuất xứ</th>
+          <th class="num">SL hợp đồng</th>
+          <th class="num">Đơn giá</th>
+          <th class="num">Thành tiền</th>
+          <th class="num">SL PO</th>
+          <th>Tiến độ giao hàng</th>
+          <th class="num">SL còn lại</th>
+          <th>Tình trạng T&amp;C</th>
+          <th>Tiến độ nhập hàng</th>
+          <th>Chứng từ</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${items.map((it,idx)=>rowHtml(it, idx+1)).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function rowHtml(it, stt){
+  const total = it.qty * it.price;
+  const poQty = itemPOTotal(it.id);
+  const delivered = itemDeliveredQty(it.id);
+  const remaining = poQty - delivered;
+  const pct = it.qty > 0 ? Math.min((delivered/it.qty)*100, 100) : 0;
+  const over = delivered > it.qty;
+  return `
+    <tr>
+      <td class="center mono">${stt}</td>
+      <td>
+        <div class="row-name">${it.name}</div>
+        <div class="row-spec">${it.spec||''}</div>
+        <div class="row-code">${it.code||''}</div>
+      </td>
+      <td><span class="stamp stamp-blue" style="transform:none;">${it.system||'—'}</span></td>
+      <td style="font-size:12.5px;">${it.brand||'—'}</td>
+      <td style="font-size:12.5px;">${it.origin||'—'}</td>
+      <td class="num">${fmtNum(it.qty)} <span style="color:var(--steel-500); font-size:11px;">${it.unit||''}</span></td>
+      <td class="num">${fmtMoney(it.price)}</td>
+      <td class="num">${fmtMoney(total)}</td>
+      <td class="num">${fmtNum(poQty)}</td>
+      <td>
+        <div class="gauge ${over?'over':''}"><div class="fill" style="width:${pct}%"></div></div>
+        <div class="gauge-lbl">${fmtNum(delivered)} / ${fmtNum(it.qty)} ${it.unit||''}</div>
+      </td>
+      <td class="num">${fmtNum(remaining)}</td>
+      <td><span class="stamp ${statusStampClass(it.status)}">${it.status}</span></td>
+      <td><span class="stamp ${importStatusStampClass(it.importStatus)}">${it.importStatus||'Chờ duyệt'}</span></td>
+      <td style="max-width:140px; font-size:11.5px; color:var(--ink-600);">${it.doc||'—'}</td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-link" onclick="openDetailModal('${it.id}')">Chi tiết</button>
+          ${can('manageItems') ? `<button class="icon-link" onclick="openItemModal('${it.id}')">Sửa</button>` : ''}
+          ${can('deleteItems') ? `<button class="icon-link" onclick="deleteItem('${it.id}')">Xóa</button>` : ''}
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+/* ================= PROJECT CRUD ================= */
+function openProjectModal(id){
+  if(!can('manageProjects')){ toast('Bạn không có quyền thao tác dự án.', true); return; }
+  const isEdit = !!id;
+  document.getElementById('projectModalTitle').textContent = isEdit ? 'Sửa dự án' : 'Dự án mới';
+  const p = isEdit ? state.projects.find(x=>x.id===id) : {id:'',code:'',name:'',client:'',system:'',status:'Đang triển khai',progress:'Chưa khởi công',progressPct:0,note:''};
+  document.getElementById('pjId').value = p.id;
+  document.getElementById('pjCode').value = p.code;
+  document.getElementById('pjName').value = p.name;
+  document.getElementById('pjClient').value = p.client||'';
+  document.getElementById('pjSystem').value = p.system||'';
+  document.getElementById('pjStatus').value = p.status;
+  document.getElementById('pjProgress').value = p.progress||'Chưa khởi công';
+  document.getElementById('pjProgressPct').value = p.progressPct!==undefined ? p.progressPct : 0;
+  document.getElementById('pjNote').value = p.note||'';
+  openModal('projectModal');
+}
+function saveProject(){
+  const id = document.getElementById('pjId').value;
+  const code = document.getElementById('pjCode').value.trim();
+  const name = document.getElementById('pjName').value.trim();
+  if(!name){ toast('Vui lòng nhập tên dự án.', true); return; }
+  const common = {
+    code, name,
+    client:document.getElementById('pjClient').value.trim(),
+    system:document.getElementById('pjSystem').value.trim(),
+    status:document.getElementById('pjStatus').value,
+    progress:document.getElementById('pjProgress').value,
+    progressPct:Math.max(0, Math.min(100, Number(document.getElementById('pjProgressPct').value)||0)),
+    note:document.getElementById('pjNote').value.trim()
+  };
+  if(id){
+    const p = state.projects.find(x=>x.id===id);
+    Object.assign(p, common);
+    touch(p);
+    fbPut('projects', p);
+  } else {
+    const newP = touch(Object.assign({id:uid('pj')}, common));
+    state.projects.push(newP);
+    state.ui.currentProjectId = newP.id;
+    fbPut('projects', newP);
+  }
+  saveState();
+  closeModal('projectModal');
+  renderProjectList();
+  renderMain();
+  toast('Đã lưu dự án.');
+}
+function deleteProject(id){
+  if(!can('deleteProjects')){ toast('Bạn không có quyền xóa dự án.', true); return; }
+  if(!confirm('Xóa dự án sẽ xóa toàn bộ hàng hóa, PO và đợt giao hàng liên quan. Tiếp tục?')) return;
+  const itemIds = state.items.filter(i=>i.projectId===id).map(i=>i.id);
+  state.poBatches.filter(p=>itemIds.includes(p.itemId)).forEach(p=>{ markDeleted('poBatches', p.id); fbDelete('poBatches', p.id); });
+  state.deliveries.filter(d=>itemIds.includes(d.itemId)).forEach(d=>{ markDeleted('deliveries', d.id); fbDelete('deliveries', d.id); });
+  state.payments.filter(p=>p.projectId===id).forEach(p=>{ markDeleted('payments', p.id); fbDelete('payments', p.id); });
+  itemIds.forEach(iid=>{ markDeleted('items', iid); fbDelete('items', iid); });
+  markDeleted('projects', id);
+  fbDelete('projects', id);
+  state.items = state.items.filter(i=>i.projectId!==id);
+  state.poBatches = state.poBatches.filter(p=>!itemIds.includes(p.itemId));
+  state.deliveries = state.deliveries.filter(d=>!itemIds.includes(d.itemId));
+  state.payments = state.payments.filter(p=>p.projectId!==id);
+  state.projects = state.projects.filter(p=>p.id!==id);
+  if(state.ui.currentProjectId === id) state.ui.currentProjectId = (state.projects[0]||{}).id || null;
+  saveState();
+  renderProjectList();
+  renderMain();
+  toast('Đã xóa dự án.');
+}
+
+/* ================= ITEM CRUD ================= */
+function recalcItemTotal(){
+  const qty = Number(document.getElementById('itQty').value)||0;
+  const price = Number(document.getElementById('itPrice').value)||0;
+  document.getElementById('itTotal').value = fmtMoney(qty*price) + ' VNĐ';
+}
+function openItemModal(id, projectId){
+  if(!can('manageItems')){ toast('Bạn không có quyền thao tác hàng hóa.', true); return; }
+  const isEdit = !!id;
+  document.getElementById('itemModalTitle').textContent = isEdit ? 'Sửa hàng hóa' : 'Hàng hóa mới';
+  const it = isEdit ? state.items.find(x=>x.id===id) : {id:'',projectId:projectId||state.ui.currentProjectId,name:'',code:'',system:'',brand:'',origin:'',spec:'',qty:0,unit:'',price:0,doc:'',status:'Chưa triển khai',importStatus:'Chờ duyệt'};
+  document.getElementById('itId').value = it.id;
+  document.getElementById('itId').dataset.projectId = it.projectId;
+  document.getElementById('itName').value = it.name;
+  document.getElementById('itSystem').value = it.system||'';
+  document.getElementById('itCode').value = it.code;
+  document.getElementById('itSpec').value = it.spec;
+  document.getElementById('itBrand').value = it.brand||'';
+  document.getElementById('itOrigin').value = it.origin||'';
+  document.getElementById('itQty').value = it.qty;
+  document.getElementById('itUnit').value = it.unit;
+  document.getElementById('itPrice').value = it.price;
+  document.getElementById('itDoc').value = it.doc;
+  document.getElementById('itStatus').value = it.status;
+  document.getElementById('itImportStatus').value = it.importStatus||'Chờ duyệt';
+  recalcItemTotal();
+
+  const financeLocked = !can('editFinance');
+  document.getElementById('itPrice').readOnly = financeLocked;
+  document.getElementById('itDoc').readOnly = financeLocked;
+  document.getElementById('itPrice').classList.toggle('locked-field', financeLocked);
+  document.getElementById('itDoc').classList.toggle('locked-field', financeLocked);
+  document.getElementById('itemFieldNote').textContent = financeLocked
+    ? 'Đơn giá và Chứng từ cung cấp chỉ Admin / Kế toán được chỉnh sửa.'
+    : '';
+  openModal('itemModal');
+}
+function saveItem(){
+  const id = document.getElementById('itId').value;
+  const projectId = document.getElementById('itId').dataset.projectId;
+  const name = document.getElementById('itName').value.trim();
+  if(!name){ toast('Vui lòng nhập tên sản phẩm.', true); return; }
+  const payload = {
+    name,
+    system: document.getElementById('itSystem').value.trim(),
+    code: document.getElementById('itCode').value.trim(),
+    spec: document.getElementById('itSpec').value.trim(),
+    brand: document.getElementById('itBrand').value.trim(),
+    origin: document.getElementById('itOrigin').value.trim(),
+    qty: Number(document.getElementById('itQty').value)||0,
+    unit: document.getElementById('itUnit').value.trim(),
+    status: document.getElementById('itStatus').value,
+    importStatus: document.getElementById('itImportStatus').value,
+  };
+  if(can('editFinance')){
+    payload.price = Number(document.getElementById('itPrice').value)||0;
+    payload.doc = document.getElementById('itDoc').value.trim();
+  }
+  if(id){
+    const it = touch(Object.assign(state.items.find(x=>x.id===id), payload));
+    fbPut('items', it);
+  } else {
+    const newIt = touch(Object.assign({id:uid('it'), projectId, price:0, doc:''}, payload));
+    state.items.push(newIt);
+    fbPut('items', newIt);
+  }
+  saveState();
+  closeModal('itemModal');
+  renderMain();
+  toast('Đã lưu hàng hóa.');
+}
+function deleteItem(id){
+  if(!can('deleteItems')){ toast('Bạn không có quyền xóa hàng hóa.', true); return; }
+  if(!confirm('Xóa hàng hóa này và toàn bộ PO / đợt giao hàng liên quan?')) return;
+  state.poBatches.filter(p=>p.itemId===id).forEach(p=>{ markDeleted('poBatches', p.id); fbDelete('poBatches', p.id); });
+  state.deliveries.filter(d=>d.itemId===id).forEach(d=>{ markDeleted('deliveries', d.id); fbDelete('deliveries', d.id); });
+  markDeleted('items', id);
+  fbDelete('items', id);
+  state.poBatches = state.poBatches.filter(p=>p.itemId!==id);
+  state.deliveries = state.deliveries.filter(d=>d.itemId!==id);
+  state.items = state.items.filter(i=>i.id!==id);
+  saveState();
+  renderMain();
+  toast('Đã xóa hàng hóa.');
+}
+
+/* ================= DETAIL MODAL: PO + DELIVERIES ================= */
+let detailItemId = null;
+function openDetailModal(itemId){
+  detailItemId = itemId;
+  renderDetailModal();
+  openModal('detailModal');
+}
+function renderDetailModal(){
+  const it = state.items.find(x=>x.id===detailItemId);
+  if(!it) return;
+  document.getElementById('detailTitle').textContent = it.name;
+  document.getElementById('detailCode').textContent = it.code || '';
+
+  const poQty = itemPOTotal(it.id);
+  const delivered = itemDeliveredQty(it.id);
+  const remaining = poQty - delivered;
+  const deliveredValue = itemDeliveredValue(it.id, it.price);
+
+  document.getElementById('detailStats').innerHTML = `
+    <div class="stat-card"><div class="lbl">SL hợp đồng</div><div class="val">${fmtNum(it.qty)} ${it.unit||''}</div></div>
+    <div class="stat-card"><div class="lbl">SL PO đặt hàng</div><div class="val">${fmtNum(poQty)}</div></div>
+    <div class="stat-card"><div class="lbl">SL đã giao</div><div class="val">${fmtNum(delivered)}</div></div>
+    <div class="stat-card"><div class="lbl">SL còn lại</div><div class="val">${fmtNum(remaining)}</div></div>
+    <div class="stat-card"><div class="lbl">Giá trị đã giao</div><div class="val">${fmtMoney(deliveredValue)}</div></div>
+  `;
+
+  const pos = state.poBatches.filter(p=>p.itemId===it.id);
+  document.getElementById('poCountBadge').innerHTML = pos.length ? `<span class="badge-count">${pos.length}</span>` : '';
+  document.getElementById('poTableBody').innerHTML = pos.length ? pos.map(p=>`
+    <tr>
+      <td>${p.poCode||'—'}</td>
+      <td>${p.date||'—'}</td>
+      <td class="num">${fmtNum(p.qty)}</td>
+      <td>${can('managePO') ? `<button class="icon-link" onclick="removePO('${p.id}')">Xóa</button>` : ''}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="4" style="color:var(--steel-500); font-size:12px;">Chưa có PO nào được ghi nhận.</td></tr>`;
+  document.getElementById('poFormWrap').style.display = can('managePO') ? 'flex' : 'none';
+
+  const dvs = state.deliveries.filter(d=>d.itemId===it.id);
+  document.getElementById('dvCountBadge').innerHTML = dvs.length ? `<span class="badge-count">${dvs.length}</span>` : '';
+  document.getElementById('dvTableBody').innerHTML = dvs.length ? dvs.map(d=>`
+    <tr>
+      <td>${d.batchNo||'—'}</td>
+      <td>${d.date||'—'}</td>
+      <td class="num">${fmtNum(d.qty)}</td>
+      <td class="num">${fmtMoney(d.qty * it.price)}</td>
+      <td>${d.note||''}</td>
+      <td>${can('manageDeliveries') ? `<button class="icon-link" onclick="removeDelivery('${d.id}')">Xóa</button>` : ''}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="6" style="color:var(--steel-500); font-size:12px;">Chưa có đợt giao hàng nào.</td></tr>`;
+  document.getElementById('dvFormWrap').style.display = can('manageDeliveries') ? 'flex' : 'none';
+}
+function addPO(){
+  if(!can('managePO')){ toast('Bạn không có quyền thêm PO.', true); return; }
+  const poCode = document.getElementById('poCode').value.trim();
+  const date = document.getElementById('poDate').value;
+  const qty = Number(document.getElementById('poQty').value)||0;
+  if(!poCode || qty<=0){ toast('Vui lòng nhập số PO và số lượng hợp lệ.', true); return; }
+  const newPO = touch({id:uid('po'), itemId:detailItemId, poCode, date, qty});
+  state.poBatches.push(newPO);
+  fbPut('poBatches', newPO);
+  document.getElementById('poCode').value=''; document.getElementById('poDate').value=''; document.getElementById('poQty').value='';
+  saveState();
+  renderDetailModal();
+  renderMain();
+  toast('Đã thêm PO.');
+}
+function removePO(id){
+  if(!can('managePO')) return;
+  markDeleted('poBatches', id);
+  fbDelete('poBatches', id);
+  state.poBatches = state.poBatches.filter(p=>p.id!==id);
+  saveState();
+  renderDetailModal();
+  renderMain();
+}
+function addDelivery(){
+  if(!can('manageDeliveries')){ toast('Bạn không có quyền thêm đợt giao hàng.', true); return; }
+  const batchNo = document.getElementById('dvBatch').value.trim();
+  const date = document.getElementById('dvDate').value;
+  const qty = Number(document.getElementById('dvQty').value)||0;
+  const note = document.getElementById('dvNote').value.trim();
+  if(!batchNo || qty<=0){ toast('Vui lòng nhập tên đợt giao và số lượng hợp lệ.', true); return; }
+  const newDv = touch({id:uid('dv'), itemId:detailItemId, batchNo, date, qty, note});
+  state.deliveries.push(newDv);
+  fbPut('deliveries', newDv);
+  document.getElementById('dvBatch').value=''; document.getElementById('dvDate').value=''; document.getElementById('dvQty').value=''; document.getElementById('dvNote').value='';
+  saveState();
+  renderDetailModal();
+  renderMain();
+  toast('Đã thêm đợt giao hàng.');
+}
+function removeDelivery(id){
+  if(!can('manageDeliveries')) return;
+  markDeleted('deliveries', id);
+  fbDelete('deliveries', id);
+  state.deliveries = state.deliveries.filter(d=>d.id!==id);
+  saveState();
+  renderDetailModal();
+  renderMain();
+}
+
+/* ================= IMPORT FROM EXCEL ================= */
+const IMPORT_HEADERS = ['Tên sản phẩm','Hệ thống','Thương hiệu','Xuất xứ','Mã hàng','Thông số kỹ thuật','Số lượng','Đơn vị tính','Đơn giá','Chứng từ cung cấp','Tình trạng T&C','Tiến độ nhập hàng'];
+let importParsedRows = [];
+
+function downloadImportTemplate(){
+  const ws = XLSX.utils.aoa_to_sheet([
+    IMPORT_HEADERS,
+    ['Máy bơm ly tâm trục ngang','Hệ thống cơ khí','Grundfos','Đan Mạch','PUMP-CN-050','Q=50m3/h, H=32m, 3 pha, 380V','4','bộ','38500000','CO/CQ, Invoice INV-0021','Đang giao hàng','Chờ duyệt'],
+  ]);
+  ws['!cols'] = IMPORT_HEADERS.map(()=>({wch:22}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Hang hoa');
+  XLSX.writeFile(wb, 'mau-nhap-hang-hoa.xlsx');
+}
+
+function openImportModal(projectId){
+  if(!can('manageItems')){ toast('Bạn không có quyền thêm hàng hóa.', true); return; }
+  document.getElementById('importProjectId').value = projectId;
+  document.getElementById('importFileInput').value = '';
+  document.getElementById('importPreviewWrap').style.display = 'none';
+  document.getElementById('importConfirmBtn').disabled = true;
+  importParsedRows = [];
+  document.getElementById('importFieldNote').textContent = can('editFinance')
+    ? '' : 'Bạn không có quyền chỉnh sửa Đơn giá / Chứng từ cung cấp — các cột này sẽ được bỏ qua khi nhập, có thể cập nhật sau bởi Admin/Kế toán.';
+  openModal('importModal');
+}
+
+function normalizeHeader(h){ return String(h||'').trim().toLowerCase(); }
+
+function handleImportFile(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+      const headerMap = {};
+      IMPORT_HEADERS.forEach(h => headerMap[normalizeHeader(h)] = h);
+      importParsedRows = rows.map(r=>{
+        const norm = {};
+        Object.keys(r).forEach(k=>{
+          const std = headerMap[normalizeHeader(k)];
+          if(std) norm[std] = r[k];
+        });
+        return norm;
+      }).filter(r => String(r['Tên sản phẩm']||'').trim() !== '');
+      renderImportPreview();
+    }catch(err){
+      toast('Không đọc được file. Vui lòng dùng đúng file mẫu.', true);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderImportPreview(){
+  const wrap = document.getElementById('importPreviewWrap');
+  const btn = document.getElementById('importConfirmBtn');
+  if(importParsedRows.length === 0){
+    wrap.style.display = 'block';
+    document.getElementById('importSummary').textContent = 'Không tìm thấy dòng hàng hóa hợp lệ nào trong file (cần có cột "Tên sản phẩm").';
+    document.getElementById('importPreviewTable').innerHTML = '';
+    btn.disabled = true;
+    return;
+  }
+  wrap.style.display = 'block';
+  document.getElementById('importSummary').textContent = `Tìm thấy ${importParsedRows.length} dòng hàng hóa hợp lệ. Kiểm tra nhanh 5 dòng đầu bên dưới trước khi nhập.`;
+  const preview = importParsedRows.slice(0,5);
+  document.getElementById('importPreviewTable').innerHTML = `
+    <thead><tr><th>Tên sản phẩm</th><th>Hệ thống</th><th>Thương hiệu</th><th>Xuất xứ</th><th>Mã hàng</th><th class="num">Số lượng</th><th class="num">Đơn giá</th></tr></thead>
+    <tbody>
+      ${preview.map(r=>`<tr><td>${r['Tên sản phẩm']||''}</td><td>${r['Hệ thống']||''}</td><td>${r['Thương hiệu']||''}</td><td>${r['Xuất xứ']||''}</td><td>${r['Mã hàng']||''}</td><td class="num">${fmtNum(r['Số lượng'])}</td><td class="num">${fmtMoney(r['Đơn giá'])}</td></tr>`).join('')}
+    </tbody>
+  `;
+  btn.disabled = false;
+}
+
+function confirmImport(){
+  const projectId = document.getElementById('importProjectId').value;
+  if(!projectId || importParsedRows.length === 0) return;
+  const financeAllowed = can('editFinance');
+  const newItems = [];
+  importParsedRows.forEach(r=>{
+    const status = ITEM_STATUS_OPTIONS.includes(r['Tình trạng T&C']) ? r['Tình trạng T&C'] : 'Chưa triển khai';
+    const importStatus = IMPORT_STATUS_OPTIONS.includes(r['Tiến độ nhập hàng']) ? r['Tiến độ nhập hàng'] : 'Chờ duyệt';
+    const newItem = touch({
+      id: uid('it'),
+      projectId,
+      name: String(r['Tên sản phẩm']||'').trim(),
+      system: String(r['Hệ thống']||'').trim(),
+      brand: String(r['Thương hiệu']||'').trim(),
+      origin: String(r['Xuất xứ']||'').trim(),
+      code: String(r['Mã hàng']||'').trim(),
+      spec: String(r['Thông số kỹ thuật']||'').trim(),
+      qty: Number(r['Số lượng'])||0,
+      unit: String(r['Đơn vị tính']||'').trim(),
+      price: financeAllowed ? (Number(r['Đơn giá'])||0) : 0,
+      doc: financeAllowed ? String(r['Chứng từ cung cấp']||'').trim() : '',
+      status,
+      importStatus,
+    });
+    state.items.push(newItem);
+    newItems.push(newItem);
+  });
+  fbBulkPut('items', newItems);
+  saveState();
+  closeModal('importModal');
+  renderMain();
+  toast(`Đã nhập ${importParsedRows.length} hàng hóa từ Excel.`);
+  importParsedRows = [];
+}
+
+/* ================= BULK DELIVERY UPDATE ================= */
+function openDeliveryUpdateModal(projectId){
+  if(!can('manageDeliveries')){ toast('Bạn không có quyền cập nhật giao hàng.', true); return; }
+  const items = state.items.filter(i=>i.projectId===projectId);
+  if(items.length === 0){ toast('Dự án chưa có hàng hóa nào để cập nhật giao hàng.', true); return; }
+  document.getElementById('dvUpdProjectId').value = projectId;
+  document.getElementById('dvUpdBatch').value = '';
+  document.getElementById('dvUpdDate').value = '';
+  document.getElementById('dvUpdNote').value = '';
+  document.getElementById('dvUpdTableBody').innerHTML = items.map(it=>{
+    const delivered = itemDeliveredQty(it.id);
+    const poQty = itemPOTotal(it.id);
+    const remaining = poQty - delivered;
+    return `
+      <tr>
+        <td class="center"><input type="checkbox" class="dvUpdCheck" data-item="${it.id}"></td>
+        <td>
+          <div class="row-name">${it.name}</div>
+          <div class="row-code">${it.code||''}</div>
+        </td>
+        <td>${it.system||'—'}</td>
+        <td class="num">${fmtNum(remaining)} ${it.unit||''}</td>
+        <td class="num"><input type="number" min="0" step="any" class="dvUpdQty" data-item="${it.id}" style="width:100px; text-align:right;" placeholder="0"></td>
+      </tr>
+    `;
+  }).join('');
+  openModal('deliveryUpdateModal');
+}
+function submitDeliveryUpdate(){
+  const projectId = document.getElementById('dvUpdProjectId').value;
+  const batchNo = document.getElementById('dvUpdBatch').value.trim() || 'Đợt giao hàng';
+  const date = document.getElementById('dvUpdDate').value;
+  const note = document.getElementById('dvUpdNote').value.trim();
+  const rows = document.querySelectorAll('#dvUpdTableBody tr');
+  let count = 0;
+  const newDeliveries = [];
+  rows.forEach(tr=>{
+    const checked = tr.querySelector('.dvUpdCheck').checked;
+    const qty = Number(tr.querySelector('.dvUpdQty').value) || 0;
+    const itemId = tr.querySelector('.dvUpdCheck').dataset.item;
+    if(checked && qty > 0){
+      const newDv = touch({id:uid('dv'), itemId, batchNo, date, qty, note});
+      state.deliveries.push(newDv);
+      newDeliveries.push(newDv);
+      count++;
+    }
+  });
+  if(count === 0){ toast('Vui lòng chọn ít nhất 1 hàng hóa và nhập số lượng giao > 0.', true); return; }
+  fbBulkPut('deliveries', newDeliveries);
+  saveState();
+  closeModal('deliveryUpdateModal');
+  renderMain();
+  toast(`Đã cập nhật giao hàng cho ${count} hàng hóa.`);
+}
+
+function openPOUpdateModal(projectId){
+  if(!can('managePO')){ toast('Bạn không có quyền cập nhật PO đặt hàng.', true); return; }
+  const items = state.items.filter(i=>i.projectId===projectId);
+  if(items.length === 0){ toast('Dự án chưa có hàng hóa nào để cập nhật PO.', true); return; }
+  document.getElementById('poUpdProjectId').value = projectId;
+  document.getElementById('poUpdCode').value = '';
+  document.getElementById('poUpdDate').value = '';
+  document.getElementById('poUpdTableBody').innerHTML = items.map(it=>{
+    const poQty = itemPOTotal(it.id);
+    return `
+      <tr>
+        <td class="center"><input type="checkbox" class="poUpdCheck" data-item="${it.id}"></td>
+        <td>
+          <div class="row-name">${it.name}</div>
+          <div class="row-code">${it.code||''}</div>
+        </td>
+        <td>${it.system||'—'}</td>
+        <td class="num">${fmtNum(it.qty)} ${it.unit||''}</td>
+        <td class="num">${fmtNum(poQty)} ${it.unit||''}</td>
+        <td class="num"><input type="number" min="0" step="any" class="poUpdQty" data-item="${it.id}" style="width:100px; text-align:right;" placeholder="0"></td>
+      </tr>
+    `;
+  }).join('');
+  openModal('poUpdateModal');
+}
+function submitPOUpdate(){
+  const poCode = document.getElementById('poUpdCode').value.trim() || 'PO đặt hàng';
+  const date = document.getElementById('poUpdDate').value;
+  const rows = document.querySelectorAll('#poUpdTableBody tr');
+  let count = 0;
+  const newPOs = [];
+  rows.forEach(tr=>{
+    const checked = tr.querySelector('.poUpdCheck').checked;
+    const qty = Number(tr.querySelector('.poUpdQty').value) || 0;
+    const itemId = tr.querySelector('.poUpdCheck').dataset.item;
+    if(checked && qty > 0){
+      const newPO = touch({id:uid('po'), itemId, poCode, date, qty});
+      state.poBatches.push(newPO);
+      newPOs.push(newPO);
+      count++;
+    }
+  });
+  if(count === 0){ toast('Vui lòng chọn ít nhất 1 hàng hóa và nhập số lượng đặt PO > 0.', true); return; }
+  fbBulkPut('poBatches', newPOs);
+  saveState();
+  closeModal('poUpdateModal');
+  renderMain();
+  toast(`Đã cập nhật PO đặt hàng cho ${count} hàng hóa.`);
+}
+
+/* ================= DELIVERY LIST / FILTER / EXPORT ================= */
+let deliveryListProjectId = null;
+if(!state.ui.deliveryListFilters) state.ui.deliveryListFilters = {search:'', system:'', dateFrom:'', dateTo:''};
+
+function openDeliveryListModal(projectId){
+  deliveryListProjectId = projectId;
+  document.getElementById('dlProjectId').value = projectId;
+  const f = state.ui.deliveryListFilters;
+  document.getElementById('dlSearch').value = f.search || '';
+  document.getElementById('dlDateFrom').value = f.dateFrom || '';
+  document.getElementById('dlDateTo').value = f.dateTo || '';
+  const items = state.items.filter(i=>i.projectId===projectId);
+  const systems = distinctItemSystems(items);
+  document.getElementById('dlSystem').innerHTML = `<option value="">Tất cả hệ thống</option>` +
+    systems.map(s=>`<option value="${s}" ${f.system===s?'selected':''}>${s}</option>`).join('');
+  renderDeliveryListModal();
+  openModal('deliveryListModal');
+}
+function onDeliveryListFilterChange(){
+  state.ui.deliveryListFilters = {
+    search: document.getElementById('dlSearch').value,
+    system: document.getElementById('dlSystem').value,
+    dateFrom: document.getElementById('dlDateFrom').value,
+    dateTo: document.getElementById('dlDateTo').value,
+  };
+  saveState();
+  renderDeliveryListModal();
+}
+function clearDeliveryListFilters(){
+  state.ui.deliveryListFilters = {search:'', system:'', dateFrom:'', dateTo:''};
+  saveState();
+  openDeliveryListModal(deliveryListProjectId);
+}
+function getDeliveryListRows(){
+  const items = state.items.filter(i=>i.projectId===deliveryListProjectId);
+  const itemMap = {}; items.forEach(i=>itemMap[i.id]=i);
+  const f = state.ui.deliveryListFilters || {search:'', system:'', dateFrom:'', dateTo:''};
+  const q = (f.search||'').trim().toLowerCase();
+  return state.deliveries
+    .filter(d => itemMap[d.itemId])
+    .map(d => ({d, it: itemMap[d.itemId]}))
+    .filter(({d, it}) => {
+      if(q && !((it.name+it.code+d.batchNo).toLowerCase().includes(q))) return false;
+      if(f.system && (it.system||'') !== f.system) return false;
+      if(f.dateFrom && d.date && d.date < f.dateFrom) return false;
+      if(f.dateTo && d.date && d.date > f.dateTo) return false;
+      if((f.dateFrom || f.dateTo) && !d.date) return false;
+      return true;
+    })
+    .sort((a,b) => (a.d.date||'').localeCompare(b.d.date||''));
+}
+function renderDeliveryListModal(){
+  const rows = getDeliveryListRows();
+  const totalQty = sum(rows, r=>r.d.qty);
+  const totalValue = sum(rows, r=>r.d.qty * r.it.price);
+  document.getElementById('dlStats').innerHTML = `
+    <div class="stat-card"><div class="lbl">Số đợt giao</div><div class="val">${rows.length}</div></div>
+    <div class="stat-card"><div class="lbl">Tổng SL đã giao (theo lọc)</div><div class="val">${fmtNum(totalQty)}</div></div>
+    <div class="stat-card"><div class="lbl">Tổng giá trị (theo lọc)</div><div class="val">${fmtMoney(totalValue)}</div></div>
+  `;
+  const wrap = document.getElementById('dlTableWrap');
+  if(rows.length === 0){
+    wrap.innerHTML = `<div class="empty-state" style="margin-top:16px;"><h3>Không có đợt giao hàng nào khớp bộ lọc</h3><p>Thử điều chỉnh từ khóa, hệ thống hoặc khoảng ngày.</p></div>`;
+    return;
+  }
+  wrap.innerHTML = `
+    <table class="mini-table">
+      <thead><tr><th style="width:36px;">STT</th><th>Sản phẩm</th><th>Hệ thống</th><th>Đợt giao</th><th>Ngày giao</th><th class="num">SL giao</th><th class="num">Giá trị (VNĐ)</th><th>Ghi chú</th></tr></thead>
+      <tbody>
+        ${rows.map(({d,it}, idx) => `
+          <tr>
+            <td class="center mono">${idx+1}</td>
+            <td>${it.name}<div class="row-code">${it.code||''}</div></td>
+            <td>${it.system||'—'}</td>
+            <td>${d.batchNo||'—'}</td>
+            <td>${d.date||'—'}</td>
+            <td class="num">${fmtNum(d.qty)} ${it.unit||''}</td>
+            <td class="num">${fmtMoney(d.qty * it.price)}</td>
+            <td>${d.note||''}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+function exportDeliveryExcel(){
+  const rows = getDeliveryListRows();
+  if(rows.length === 0){ toast('Không có dữ liệu đợt giao hàng để xuất.', true); return; }
+  const proj = state.projects.find(p=>p.id===deliveryListProjectId);
+  const aoa = [
+    ['STT','Sản phẩm','Mã hàng','Hệ thống','Đợt giao','Ngày giao','SL giao','Đơn vị','Đơn giá','Giá trị giao (VNĐ)','Ghi chú']
+  ];
+  rows.forEach(({d,it}, idx)=>{
+    aoa.push([idx+1, it.name, it.code||'', it.system||'', d.batchNo||'', d.date||'', d.qty, it.unit||'', it.price, d.qty*it.price, d.note||'']);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = aoa[0].map(()=>({wch:18}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Dot giao hang');
+  const fileName = `dot-giao-hang${proj ? '-'+proj.code.replace(/[^\w-]/g,'') : ''}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+  toast('Đã xuất file Excel đợt giao hàng.');
+}
+
+/* ================= PAYMENT MANAGEMENT (per project) ================= */
+let paymentProjectId = null;
+function openPaymentModal(projectId){
+  paymentProjectId = projectId;
+  document.getElementById('paymentProjectId').value = projectId;
+  document.getElementById('pmBatch').value = '';
+  document.getElementById('pmDate').value = '';
+  document.getElementById('pmAmount').value = '';
+  document.getElementById('pmNote').value = '';
+  renderPaymentModal();
+  openModal('paymentModal');
+}
+function renderPaymentModal(){
+  const proj = state.projects.find(p=>p.id===paymentProjectId);
+  if(!proj) return;
+  const items = state.items.filter(i=>i.projectId===proj.id);
+  const deliveredValue = sum(items, i=>itemDeliveredValue(i.id, i.price));
+  const paid = projectPaidTotal(proj.id);
+  const remaining = deliveredValue - paid;
+
+  document.getElementById('paymentStats').innerHTML = `
+    <div class="stat-card"><div class="lbl">Giá trị đã giao</div><div class="val">${fmtMoney(deliveredValue)}</div></div>
+    <div class="stat-card"><div class="lbl">Đã thanh toán</div><div class="val">${fmtMoney(paid)}</div></div>
+    <div class="stat-card ${remaining>0?'stat-card-warn':'stat-card-ok'}"><div class="lbl">Còn lại chưa thanh toán</div><div class="val">${fmtMoney(remaining)}</div></div>
+  `;
+
+  const payments = state.payments.filter(p=>p.projectId===proj.id);
+  document.getElementById('paymentCountBadge').innerHTML = payments.length ? `<span class="badge-count">${payments.length}</span>` : '';
+  document.getElementById('paymentTableBody').innerHTML = payments.length ? payments.map(p=>`
+    <tr>
+      <td>${p.batchNo||'—'}</td>
+      <td>${p.date||'—'}</td>
+      <td class="num">${fmtMoney(p.amount)}</td>
+      <td>${p.note||''}</td>
+      <td>${can('managePayments') ? `<button class="icon-link" onclick="removePayment('${p.id}')">Xóa</button>` : ''}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="5" style="color:var(--steel-500); font-size:12px;">Chưa có đợt thanh toán nào được ghi nhận.</td></tr>`;
+  document.getElementById('paymentFormWrap').style.display = can('managePayments') ? 'flex' : 'none';
+}
+function addPayment(){
+  if(!can('managePayments')){ toast('Bạn không có quyền cập nhật giá trị thanh toán.', true); return; }
+  const batchNo = document.getElementById('pmBatch').value.trim();
+  const date = document.getElementById('pmDate').value;
+  const amount = Number(document.getElementById('pmAmount').value)||0;
+  const note = document.getElementById('pmNote').value.trim();
+  if(!batchNo || amount<=0){ toast('Vui lòng nhập tên đợt thanh toán và giá trị hợp lệ.', true); return; }
+  const newPm = touch({id:uid('pm'), projectId:paymentProjectId, batchNo, date, amount, note});
+  state.payments.push(newPm);
+  fbPut('payments', newPm);
+  document.getElementById('pmBatch').value=''; document.getElementById('pmDate').value=''; document.getElementById('pmAmount').value=''; document.getElementById('pmNote').value='';
+  saveState();
+  renderPaymentModal();
+  renderMain();
+  toast('Đã thêm đợt thanh toán.');
+}
+function removePayment(id){
+  if(!can('managePayments')) return;
+  markDeleted('payments', id);
+  fbDelete('payments', id);
+  state.payments = state.payments.filter(p=>p.id!==id);
+  saveState();
+  renderPaymentModal();
+  renderMain();
+}
+
+/* ================= USERS ================= */
+function openUsersModal(){
+  if(!can('manageUsers')){ toast('Bạn không có quyền quản lý người dùng.', true); return; }
+  renderUsersTable();
+  renderPermTable();
+  openModal('usersModal');
+}
+function renderPermTable(){
+  const editable = can('manageUsers');
+  document.getElementById('permTableBody').innerHTML = PERMISSION_ACTIONS.map(a => `
+    <tr>
+      <td>${a.label}</td>
+      ${ROLE_LIST.map(role => {
+        if(role === 'Admin'){
+          return `<td class="center"><input type="checkbox" checked disabled></td>`;
+        }
+        const checked = (state.permissions[a.key]||[]).includes(role);
+        return `<td class="center"><input type="checkbox" ${checked?'checked':''} ${editable?'':'disabled'} onchange="togglePermission('${a.key}','${role}',this.checked)"></td>`;
+      }).join('')}
+    </tr>
+  `).join('');
+}
+function togglePermission(actionKey, role, checked){
+  if(!can('manageUsers')){ toast('Bạn không có quyền chỉnh sửa phân quyền.', true); return; }
+  const arr = state.permissions[actionKey] || (state.permissions[actionKey] = []);
+  if(checked){
+    if(!arr.includes(role)) arr.push(role);
+  } else {
+    state.permissions[actionKey] = arr.filter(r => r !== role);
+  }
+  saveState();
+  fbPutPermissions();
+  toast('Đã cập nhật phân quyền.');
+  renderPermTable();
+  boot();
+  openModal('usersModal');
+}
+function resetPermissions(){
+  if(!can('manageUsers')){ toast('Bạn không có quyền chỉnh sửa phân quyền.', true); return; }
+  if(!confirm('Khôi phục ma trận phân quyền về mặc định ban đầu?')) return;
+  state.permissions = defaultPermissions();
+  saveState();
+  fbPutPermissions();
+  toast('Đã khôi phục phân quyền mặc định.');
+  renderPermTable();
+  boot();
+  openModal('usersModal');
+}
+function renderUsersTable(){
+  document.getElementById('usersTableBody').innerHTML = state.users.map(u=>`
+    <tr>
+      <td>${u.name}</td>
+      <td class="mono">${u.username}</td>
+      <td><span class="stamp stamp-blue">${u.role}</span></td>
+      <td>${state.users.length>1 ? `<button class="icon-link" onclick="removeUser('${u.id}')">Xóa</button>` : ''}</td>
+    </tr>
+  `).join('');
+}
+function addUser(){
+  const name = document.getElementById('usrName').value.trim();
+  const username = document.getElementById('usrUsername').value.trim();
+  const password = document.getElementById('usrPassword').value;
+  const role = document.getElementById('usrRole').value;
+  if(!name || !username || !password){ toast('Vui lòng nhập đầy đủ thông tin người dùng.', true); return; }
+  if(state.users.some(u=>u.username===username)){ toast('Tài khoản đã tồn tại.', true); return; }
+  const newUser = touch({id:uid('u'), name, username, password, role});
+  state.users.push(newUser);
+  fbPut('users', newUser);
+  document.getElementById('usrName').value=''; document.getElementById('usrUsername').value=''; document.getElementById('usrPassword').value='';
+  saveState();
+  renderUsersTable();
+  toast('Đã thêm người dùng.');
+}
+function removeUser(id){
+  if(id === state.session.userId){ toast('Không thể xóa tài khoản đang đăng nhập.', true); return; }
+  if(!confirm('Xóa người dùng này?')) return;
+  markDeleted('users', id);
+  fbDelete('users', id);
+  state.users = state.users.filter(u=>u.id!==id);
+  saveState();
+  renderUsersTable();
+}
+
+/* ================= FIREBASE REALTIME SYNC ================= */
+const FIREBASE_TABLES = ['projects','items','poBatches','deliveries','payments','users'];
+const FIREBASE_RULES = `{
+  "rules": {
+    "data": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+}`;
+
+let fbApp = null;
+let fbDb = null;
+let fbListenersAttached = false;
+
+function fbEnabled(){ return !!(fbDb && state.firebase && state.firebase.enabled); }
+
+function copyRules(){
+  navigator.clipboard.writeText(FIREBASE_RULES).then(()=>toast('Đã sao chép quy tắc bảo mật.'));
+}
+
+function parseFirebaseConfigInput(text){
+  let t = (text||'').trim();
+  if(!t) return null;
+  const braceStart = t.indexOf('{');
+  const braceEnd = t.lastIndexOf('}');
+  if(braceStart === -1 || braceEnd === -1) return null;
+  t = t.slice(braceStart, braceEnd+1);
+  try{
+    return (new Function('return (' + t + ')'))();
+  }catch(err){
+    return null;
+  }
+}
+
+function openSyncModal(){
+  if(!can('manageSettings')){ toast('Chỉ Admin được cấu hình đồng bộ.', true); return; }
+  document.getElementById('firebaseRulesCode').textContent = FIREBASE_RULES;
+  document.getElementById('firebaseConfigInput').value = state.firebase && state.firebase.config
+    ? 'const firebaseConfig = ' + JSON.stringify(state.firebase.config, null, 2) + ';'
+    : '';
+  updateSyncStatusNote();
+  openModal('syncModal');
+}
+function updateSyncStatusNote(msg){
+  const note = document.getElementById('syncStatusNote');
+  if(!note) return;
+  if(msg){ note.textContent = msg; return; }
+  if(fbEnabled()){
+    note.textContent = 'Đã kết nối Firebase — dữ liệu đang đồng bộ thời gian thực với mọi người dùng khác.';
+  } else if(state.firebase && state.firebase.config){
+    note.textContent = 'Đã lưu cấu hình nhưng chưa kết nối. Bấm "Kết nối & Bật đồng bộ thời gian thực".';
+  } else {
+    note.textContent = 'Chưa kết nối Firebase — dữ liệu chỉ đang lưu trên trình duyệt này.';
+  }
+}
+
+async function connectFirebase(){
+  if(!can('manageSettings')){ toast('Chỉ Admin được cấu hình đồng bộ.', true); return; }
+  const raw = document.getElementById('firebaseConfigInput').value;
+  const config = parseFirebaseConfigInput(raw);
+  if(!config || !config.databaseURL){
+    toast('Không đọc được cấu hình Firebase. Kiểm tra lại đoạn đã dán (cần có databaseURL).', true);
+    return;
+  }
+  try{
+    await teardownFirebase();
+    fbApp = firebase.initializeApp(config, 'tid_' + Date.now());
+    await fbApp.auth().signInAnonymously();
+    fbDb = fbApp.database();
+    state.firebase = {config, enabled:true};
+    saveState();
+    await seedFirebaseIfEmpty();
+    attachFirebaseListeners();
+    updateSyncStatusNote();
+    toast('Đã kết nối Firebase. Đang đồng bộ thời gian thực.');
+  }catch(err){
+    toast('Không kết nối được Firebase: ' + (err && err.message ? err.message : 'lỗi không xác định'), true);
+  }
+}
+async function disconnectFirebase(){
+  if(!can('manageSettings')){ toast('Chỉ Admin được cấu hình đồng bộ.', true); return; }
+  await teardownFirebase();
+  state.firebase = {config: state.firebase ? state.firebase.config : null, enabled:false};
+  saveState();
+  updateSyncStatusNote();
+  toast('Đã ngắt kết nối Firebase.');
+}
+async function teardownFirebase(){
+  if(fbDb){
+    FIREBASE_TABLES.forEach(t=>{ try{ fbDb.ref('data/'+t).off(); }catch(e){} });
+    try{ fbDb.ref('data/_permissions').off(); }catch(e){}
+  }
+  if(fbApp){ try{ await fbApp.delete(); }catch(e){} }
+  fbApp = null; fbDb = null; fbListenersAttached = false;
+}
+
+async function seedFirebaseIfEmpty(){
+  const snap = await fbDb.ref('data').once('value');
+  if(snap.exists()) return;
+  const updates = {};
+  FIREBASE_TABLES.forEach(t=>{
+    const map = {};
+    (state[t]||[]).forEach(r=>{ if(r.id) map[r.id]=r; });
+    updates[t] = map;
+  });
+  updates._permissions = state.permissions;
+  await fbDb.ref('data').set(updates);
+}
+
+function attachFirebaseListeners(){
+  if(fbListenersAttached || !fbDb) return;
+  fbListenersAttached = true;
+  FIREBASE_TABLES.forEach(table=>{
+    fbDb.ref('data/'+table).on('value', snap=>{
+      const val = snap.val() || {};
+      state[table] = Object.keys(val).map(k=>val[k]);
+      if(table==='items') state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; });
+      saveState();
+      refreshOpenViews();
+    });
+  });
+  fbDb.ref('data/_permissions').on('value', snap=>{
+    const val = snap.val();
+    if(val){ state.permissions = val; saveState(); refreshOpenViews(); }
+  });
+}
+
+function refreshOpenViews(){
+  if(!currentUser()) return;
+  renderProjectList();
+  renderMain();
+  if(document.getElementById('detailModal').classList.contains('show') && typeof detailItemId!=='undefined' && detailItemId) renderDetailModal();
+  if(document.getElementById('paymentModal').classList.contains('show') && typeof paymentProjectId!=='undefined' && paymentProjectId) renderPaymentModal();
+  if(document.getElementById('deliveryListModal').classList.contains('show') && typeof deliveryListProjectId!=='undefined' && deliveryListProjectId) renderDeliveryListModal();
+  if(document.getElementById('usersModal').classList.contains('show')){ renderUsersTable(); renderPermTable(); }
+}
+
+function fbPut(table, record){
+  if(!fbEnabled() || !record || !record.id) return;
+  fbDb.ref('data/'+table+'/'+record.id).set(record).catch(()=>{});
+}
+function fbDelete(table, id){
+  if(!fbEnabled() || !id) return;
+  fbDb.ref('data/'+table+'/'+id).remove().catch(()=>{});
+}
+function fbBulkPut(table, records){
+  if(!fbEnabled() || !records || !records.length) return;
+  const updates = {};
+  records.forEach(r=>{ if(r && r.id) updates[r.id] = r; });
+  fbDb.ref('data/'+table).update(updates).catch(()=>{});
+}
+function fbPutPermissions(){
+  if(!fbEnabled()) return;
+  fbDb.ref('data/_permissions').set(state.permissions).catch(()=>{});
+}
+
+async function autoReconnectFirebase(){
+  if(!state.firebase || !state.firebase.enabled || !state.firebase.config) return;
+  try{
+    fbApp = firebase.initializeApp(state.firebase.config, 'tid_' + Date.now());
+    await fbApp.auth().signInAnonymously();
+    fbDb = fbApp.database();
+    await seedFirebaseIfEmpty();
+    attachFirebaseListeners();
+    updateSyncStatusNote();
+  }catch(err){
+    console.error('Firebase reconnect failed', err);
+  }
+}
+
+/* ================= INIT ================= */
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape'){
+    document.querySelectorAll('.overlay.show').forEach(o=>o.classList.remove('show'));
+  }
+});
+document.getElementById('loginPass').addEventListener('keydown', (e)=>{ if(e.key==='Enter') handleLogin(); });
+saveState();
+boot();
+autoReconnectFirebase();
+</script>
+</body>
+</html>
