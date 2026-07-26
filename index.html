@@ -217,15 +217,25 @@
   .filter-bar .field label{font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; font-family:'IBM Plex Mono'; color:var(--steel-500);}
   .filter-result-count{font-size:11.5px; color:var(--steel-500); margin-bottom:6px; font-family:'IBM Plex Mono';}
 
-  table.data-table{width:100%; border-collapse:collapse; background:#fff; box-shadow:var(--shadow-card); border-radius:var(--radius); overflow:hidden;}
+  table.data-table{width:100%; border-collapse:collapse; background:#fff; box-shadow:var(--shadow-card); border-radius:var(--radius);}
   table.data-table thead th{
     background:var(--navy-900); color:#fff; text-align:left; padding:9px 10px; font-size:10.5px;
     letter-spacing:0.06em; text-transform:uppercase; font-family:'IBM Plex Mono'; font-weight:500; white-space:nowrap;
+    position:sticky; top:0; z-index:4;
   }
   table.data-table tbody td{
-    padding:9px 10px; border-bottom:1px solid var(--paper-200); font-size:13px; vertical-align:middle;
+    padding:9px 10px; border-bottom:1px solid var(--paper-200); font-size:13px; vertical-align:middle; background:#fff;
   }
-  table.data-table tbody tr:hover{background:var(--paper-50);}
+  table.data-table tbody tr:hover td{background:var(--paper-50);}
+  table.data-table th:nth-child(1), table.data-table td:nth-child(1){
+    position:sticky; left:0; z-index:2;
+  }
+  table.data-table th:nth-child(2), table.data-table td:nth-child(2){
+    position:sticky; left:48px; z-index:2; box-shadow:2px 0 4px rgba(0,0,0,0.06);
+  }
+  table.data-table thead th:nth-child(1), table.data-table thead th:nth-child(2){
+    z-index:5; background:var(--navy-900);
+  }
   table.data-table td.num, table.data-table th.num{text-align:right; font-family:'IBM Plex Mono';}
   table.data-table td.center{text-align:center;}
   .center{text-align:center;}
@@ -297,7 +307,11 @@
   .badge-count{
     font-family:'IBM Plex Mono'; font-size:10px; background:var(--orange-600); color:#fff; padding:1px 6px; border-radius:10px; margin-left:6px;
   }
-  #itemsTableContainer, #dashboardTableWrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  #itemsTableContainer{
+    overflow-x:auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    max-height:64vh; border-radius:var(--radius);
+  }
+  #dashboardTableWrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
 
   /* ---------- Mobile drawer sidebar ---------- */
   #hamburgerBtn{display:none;}
@@ -370,13 +384,13 @@
     <div class="hub-card" onclick="enterModule(1)">
       <div class="hub-num">MODULE 01</div>
       <h3>Theo dõi quản lý hàng hóa &amp; dự án</h3>
-      <div class="hub-desc">Quản lý danh sách dự án, hàng hóa, PO đặt hàng, đợt giao hàng, thanh toán và phân quyền người dùng.</div>
+      <div class="hub-desc">Quản lý danh sách dự án, hàng hóa, PO đặt hàng, đợt giao hàng, công nợ, thanh toán.</div>
       <div class="hub-foot"><span class="stamp stamp-green">Đang sử dụng</span></div>
     </div>
     <div class="hub-card disabled" onclick="enterModule(2)">
       <div class="hub-num">MODULE 02</div>
       <h3>Check giá dự án</h3>
-      <div class="hub-desc">Tra cứu và so sánh đơn giá vật tư theo từng dự án, nhà cung cấp.</div>
+      <div class="hub-desc">Tra cứu và yêu cầu cấp đơn giá vật tư theo từng dự án.</div>
       <div class="hub-foot"><span class="stamp stamp-amber">Sắp ra mắt</span></div>
     </div>
     <div class="hub-card disabled" onclick="enterModule(3)">
@@ -412,7 +426,7 @@
         <input type="password" id="loginPass" placeholder="Nhập mật khẩu">
       </div>
       <button class="btn btn-primary btn-block" onclick="handleLogin()">Đăng nhập</button>
-      <div class="login-hint">Tài khoản Vui lòng chọn tài khoản và nhập mật khẩu đã cung cấp để truy cập phần mềm.</div>
+      <div class="login-hint">Tài khoản: Vui lòng chọn tài khoản và nhập mật khẩu đã cung cấp để truy cập phần mềm.</div>
       <div style="text-align:center; margin-top:16px;"><a href="#" onclick="backToModuleHub(); return false;" style="font-size:12px; color:var(--steel-500); text-decoration:none;">← Chọn phần mềm khác</a></div>
     </div>
   </div>
