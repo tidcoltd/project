@@ -369,6 +369,200 @@
     .login-card{width:92vw; max-width:380px;}
     .hub-header h1{font-size:21px;}
   }
+
+  /* ================= MODULE 3: KIỂM TRA TỒN KHO (scoped) ================= */
+#module3Screen{
+    --bg:#F4F5F7;
+    --panel:#FFFFFF;
+    --panel-2:#EEF1F4;
+    --border:#DEE3E8;
+    --text:#1C2733;
+    --text-muted:#6B7684;
+    --accent:#F5A623;
+    --accent-text:#A8660A;
+    --accent-ink:#3A2A05;
+    --good:#1E8E5A;
+    --bad:#C0392B;
+    --radius:10px;;
+    min-height:100vh;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans',system-ui,sans-serif;
+}
+#module3Screen ::selection{background:var(--accent);color:var(--accent-ink);}
+#module3Screen .mono{font-family:'IBM Plex Mono',monospace;}
+#module3Screen a{color:var(--accent-text);}
+#module3Screen header.topbar{
+    position:sticky;top:0;z-index:40;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 28px;background:rgba(244,245,247,.92);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+  }
+#module3Screen .brand{display:flex;align-items:center;gap:12px;}
+#module3Screen .brand .mark{
+    width:34px;height:34px;border-radius:8px;background:var(--accent);
+    color:var(--accent-ink);display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-family:'IBM Plex Mono',monospace;font-size:13px;flex-shrink:0;
+  }
+#module3Screen .brand h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.2px;}
+#module3Screen .brand p{margin:0;font-size:12px;color:var(--text-muted);}
+#module3Screen .topbar-right{display:flex;align-items:center;gap:10px;}
+#module3Screen .date-pill{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;padding:6px 12px;
+    border:1px solid var(--border);border-radius:20px;color:var(--text-muted);
+    background:var(--panel);
+  }
+#module3Screen .icon-btn{
+    width:34px;height:34px;border-radius:8px;border:1px solid var(--border);
+    background:var(--panel);color:var(--text-muted);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;font-size:16px;
+    transition:.15s;
+  }
+#module3Screen .icon-btn:hover{color:var(--text);border-color:#C7CFD6;}
+#module3Screen .back-link{
+    display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-muted);
+    text-decoration:none;padding:6px 12px;border:1px solid var(--border);border-radius:20px;
+    background:var(--panel);transition:.15s;
+  }
+#module3Screen .back-link:hover{color:var(--text);border-color:#C7CFD6;}
+#module3Screen main{max-width:1360px;margin:0 auto;padding:26px 28px 80px;}
+#module3Screen .upload-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:22px;}
+@media (max-width:820px) {#module3Screen .upload-grid{grid-template-columns:1fr;}
+}
+#module3Screen .dropzone{
+    border:1.5px dashed var(--border);border-radius:var(--radius);
+    background:var(--panel);padding:22px;cursor:pointer;transition:.15s;
+    display:flex;align-items:center;gap:16px;position:relative;
+  }
+#module3Screen .dropzone:hover{border-color:var(--accent);background:var(--panel-2);}
+#module3Screen .dropzone.has-file{border-style:solid;border-color:var(--good);}
+#module3Screen .dropzone.optional{opacity:.85;}
+#module3Screen .dz-icon{
+    width:44px;height:44px;border-radius:8px;background:var(--panel-2);
+    display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;
+    border:1px solid var(--border);
+  }
+#module3Screen .dropzone.has-file .dz-icon{background:rgba(30,142,90,.12);border-color:var(--good);color:var(--good);}
+#module3Screen .dz-text .label{font-size:13px;font-weight:600;margin-bottom:2px;}
+#module3Screen .dz-text .hint{font-size:12px;color:var(--text-muted);}
+#module3Screen .dz-text .filename{font-size:12px;color:var(--good);font-family:'IBM Plex Mono',monospace;margin-top:4px;word-break:break-all;}
+#module3Screen input[type=file]{display:none;}
+#module3Screen .source-banner{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    padding:10px 14px;margin-bottom:16px;font-size:12.5px;color:var(--text-muted);
+  }
+#module3Screen .source-banner .dot{width:8px;height:8px;border-radius:50%;background:var(--text-muted);flex-shrink:0;}
+#module3Screen .source-banner.live .dot{background:var(--good);}
+#module3Screen .source-banner.local .dot{background:var(--accent);}
+#module3Screen .source-banner b{color:var(--text);font-weight:600;}
+#module3Screen .source-banner .spacer{flex:1;}
+#module3Screen .source-banner button{
+    background:none;border:1px solid var(--border);color:var(--text-muted);
+    padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit;
+  }
+#module3Screen .source-banner button:hover{color:var(--text);border-color:#C7CFD6;}
+#module3Screen .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+@media (max-width:960px) {#module3Screen .stats{grid-template-columns:repeat(2,1fr);}
+}
+#module3Screen .stat-card{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+    padding:14px 16px;
+  }
+#module3Screen .stat-card .k{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+#module3Screen .stat-card .v{font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;}
+#module3Screen .stat-card .v.small{font-size:14px;}
+#module3Screen .stat-card .sub{font-size:11px;color:var(--text-muted);margin-top:3px;}
+#module3Screen .stat-card.ok .v{color:var(--good);}
+#module3Screen .stat-card.warn .v{color:var(--accent-text);}
+#module3Screen .toolbar{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;
+    padding:12px 14px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+  }
+#module3Screen .toolbar input[type=text], #module3Screen .toolbar select{
+    background:var(--panel-2);border:1px solid var(--border);color:var(--text);
+    padding:8px 10px;border-radius:7px;font-size:13px;font-family:inherit;
+  }
+#module3Screen .toolbar input[type=text]{flex:1;min-width:180px;}
+#module3Screen .toolbar input[type=text]:focus, #module3Screen .toolbar select:focus{outline:none;border-color:var(--accent);}
+#module3Screen .btn{
+    padding:8px 14px;border-radius:7px;border:1px solid var(--border);background:var(--panel-2);
+    color:var(--text);font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;
+    display:inline-flex;align-items:center;gap:6px;transition:.15s;white-space:nowrap;
+  }
+#module3Screen .btn:hover{border-color:#C7CFD6;}
+#module3Screen .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;}
+#module3Screen .btn.primary:hover{filter:brightness(1.08);}
+#module3Screen .btn:disabled{opacity:.45;cursor:not-allowed;}
+#module3Screen .spacer{flex:1;}
+#module3Screen .table-wrap{
+    background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;
+  }
+#module3Screen table{width:100%;border-collapse:collapse;font-size:13px;}
+#module3Screen thead th{
+    position:sticky;top:57px;background:var(--panel-2);text-align:left;
+    padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;
+    user-select:none;
+  }
+#module3Screen thead th[data-k]{cursor:pointer;}
+#module3Screen thead th[data-k]:hover{color:var(--text);}
+#module3Screen tbody tr{border-bottom:1px solid var(--border);cursor:pointer;}
+#module3Screen tbody tr:hover{background:rgba(245,166,35,.05);}
+#module3Screen tbody td{padding:9px 12px;vertical-align:middle;}
+#module3Screen td.num{font-family:'IBM Plex Mono',monospace;text-align:right;}
+#module3Screen td.code{font-family:'IBM Plex Mono',monospace;color:var(--accent-text);}
+#module3Screen .grp{font-size:11px;color:var(--text-muted);line-height:1.3;}
+#module3Screen .grp b{color:var(--text);font-weight:500;}
+#module3Screen .delta{font-family:'IBM Plex Mono',monospace;font-size:12px;padding:2px 6px;border-radius:5px;}
+#module3Screen .delta.up{color:var(--good);background:rgba(30,142,90,.12);}
+#module3Screen .delta.down{color:var(--bad);background:rgba(192,57,43,.12);}
+#module3Screen .delta.flat{color:var(--text-muted);}
+#module3Screen canvas.fp{display:block;image-rendering:pixelated;border-radius:3px;cursor:help;}
+#module3Screen .empty-row td{padding:40px;text-align:center;color:var(--text-muted);}
+#module3Screen .detail-tpl td{background:var(--panel-2);padding:14px 20px;}
+#module3Screen .kho-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;}
+#module3Screen .kho-cell{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:6px 8px;}
+#module3Screen .kho-cell .kn{font-size:10px;color:var(--text-muted);}
+#module3Screen .kho-cell .kv{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;}
+#module3Screen .kho-cell.zero{opacity:.35;}
+#module3Screen .loadmore{padding:16px;text-align:center;}
+#module3Screen .drawer-backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90;display:none;
+  }
+#module3Screen .drawer-backdrop.open{display:block;}
+#module3Screen .drawer{
+    position:fixed;top:0;right:-420px;width:400px;max-width:92vw;height:100%;
+    background:var(--panel);border-left:1px solid var(--border);z-index:91;
+    transition:right .2s ease;padding:24px;overflow-y:auto;
+  }
+#module3Screen .drawer.open{right:0;}
+#module3Screen .drawer h2{font-size:15px;margin:0 0 4px;}
+#module3Screen .drawer p.hint{font-size:12px;color:var(--text-muted);margin:0 0 18px;line-height:1.5;}
+#module3Screen .field{margin-bottom:14px;}
+#module3Screen .field label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:5px;}
+#module3Screen .field input{
+    width:100%;background:var(--panel-2);border:1px solid var(--border);color:var(--text);
+    padding:9px 10px;border-radius:7px;font-size:13px;font-family:'IBM Plex Mono',monospace;
+  }
+#module3Screen .field input:focus{outline:none;border-color:var(--accent);}
+#module3Screen .sync-log{
+    margin-top:16px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;
+    background:var(--panel-2);border:1px solid var(--border);border-radius:7px;
+    padding:10px;max-height:180px;overflow-y:auto;color:var(--text-muted);white-space:pre-wrap;
+  }
+#module3Screen .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);
+    background:var(--panel-2);border:1px solid var(--border);color:var(--text);
+    padding:11px 18px;border-radius:8px;font-size:13px;z-index:100;opacity:0;
+    transition:.2s;pointer-events:none;box-shadow:0 8px 24px rgba(30,39,51,.18);
+  }
+#module3Screen .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#module3Screen .toast.err{border-color:var(--bad);color:var(--bad);}
+#module3Screen .toast.ok{border-color:var(--good);color:var(--good);}
+#module3Screen .chev{display:inline-block;transition:transform .15s;color:var(--text-muted);}
+#module3Screen .chev.open{transform:rotate(90deg);}
+
 </style>
 </head>
 <body>
@@ -384,20 +578,20 @@
     <div class="hub-card" onclick="enterModule(1)">
       <div class="hub-num">MODULE 01</div>
       <h3>Theo dõi quản lý hàng hóa &amp; dự án</h3>
-      <div class="hub-desc">Quản lý danh sách dự án, hàng hóa, PO đặt hàng, đợt giao hàng, công nợ, thanh toán.</div>
+      <div class="hub-desc">Quản lý danh sách dự án, hàng hóa, PO đặt hàng, đợt giao hàng, thanh toán, công nợ.</div>
       <div class="hub-foot"><span class="stamp stamp-green">Đang sử dụng</span></div>
     </div>
     <div class="hub-card disabled" onclick="enterModule(2)">
       <div class="hub-num">MODULE 02</div>
       <h3>Check giá dự án</h3>
-      <div class="hub-desc">Tra cứu và yêu cầu cấp đơn giá vật tư theo từng dự án.</div>
+      <div class="hub-desc">Tra cứu và so sánh đơn giá vật tư theo từng dự án, nhà cung cấp.</div>
       <div class="hub-foot"><span class="stamp stamp-amber">Sắp ra mắt</span></div>
     </div>
-    <div class="hub-card disabled" onclick="enterModule(3)">
+    <div class="hub-card" onclick="enterModule(3)">
       <div class="hub-num">MODULE 03</div>
       <h3>Check tồn kho hàng hóa</h3>
       <div class="hub-desc">Theo dõi số lượng tồn kho thực tế của từng mặt hàng theo thời gian.</div>
-      <div class="hub-foot"><span class="stamp stamp-amber">Sắp ra mắt</span></div>
+      <div class="hub-foot"><span class="stamp stamp-green">Đang sử dụng</span></div>
     </div>
     <div class="hub-card disabled" onclick="enterModule(4)">
       <div class="hub-num">MODULE 04</div>
@@ -466,6 +660,118 @@
     </div>
     <div id="main"></div>
   </div>
+</div>
+
+<!-- MODULE 3: KIỂM TRA TỒN KHO HÀNG HÓA -->
+<div id="module3Screen" style="display:none;">
+<header class="topbar">
+  <div class="brand">
+    <div class="mark">M3</div>
+    <div>
+      <h1>Kiểm tra tồn kho hàng hoá</h1>
+      <p>TID · Theo dõi hàng hoá dự án — Module 3</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <a class="back-link" href="#" onclick="backToModuleHub(); return false;">← Chọn phần mềm khác</a>
+    <span class="date-pill" id="reportDatePill">Chưa có dữ liệu</span>
+    <button class="icon-btn" id="reloadBtn" title="Tải lại dữ liệu mới nhất từ Firebase">⟳</button>
+    <button class="icon-btn" id="settingsBtn" title="Cấu hình Firebase">⚙</button>
+  </div>
+</header>
+
+<main>
+
+  <div class="upload-grid">
+    <label class="dropzone" id="dzToday">
+      <div class="dz-icon">⬆</div>
+      <div class="dz-text">
+        <div class="label">Báo cáo tồn kho hôm nay *</div>
+        <div class="hint">Chỉ admin cần tải file này — file .xls xuất từ Bravo, kéo thả hoặc bấm để chọn</div>
+        <div class="filename" id="fnToday"></div>
+      </div>
+      <input type="file" id="fileToday" accept=".xls,.xlsx">
+    </label>
+    <label class="dropzone optional" id="dzPrev">
+      <div class="dz-icon">↺</div>
+      <div class="dz-text">
+        <div class="label">Báo cáo ngày trước (tuỳ chọn)</div>
+        <div class="hint">Để so sánh biến động tồn kho theo ngày</div>
+        <div class="filename" id="fnPrev"></div>
+      </div>
+      <input type="file" id="filePrev" accept=".xls,.xlsx">
+    </label>
+  </div>
+
+  <div class="source-banner" id="sourceBanner" style="display:none;"></div>
+
+  <div class="stats" id="statsRow" style="display:none;">
+    <div class="stat-card"><div class="k">Tổng mã vật tư</div><div class="v" id="statItems">–</div></div>
+    <div class="stat-card"><div class="k">Nhóm hàng</div><div class="v" id="statCats">–</div></div>
+    <div class="stat-card"><div class="k">Tổng tồn kho</div><div class="v" id="statTotal">–</div></div>
+    <div class="stat-card" id="reconCard"><div class="k">Đối soát tổng cuối</div><div class="v small" id="statRecon">–</div></div>
+    <div class="stat-card"><div class="k">Ngày báo cáo</div><div class="v small">
+      <input type="date" id="reportDateInput" style="background:transparent;border:none;color:inherit;font:inherit;padding:0;">
+    </div></div>
+  </div>
+
+  <div class="toolbar" id="toolbar" style="display:none;">
+    <input type="text" id="searchBox" placeholder="Tìm theo mã vật tư hoặc tên...">
+    <select id="catFilter"><option value="">Tất cả nhóm hàng</option></select>
+    <select id="sortSel">
+      <option value="ton_desc">Tồn cuối — giảm dần</option>
+      <option value="ton_asc">Tồn cuối — tăng dần</option>
+      <option value="ma_asc">Mã vật tư A→Z</option>
+      <option value="ten_asc">Tên vật tư A→Z</option>
+      <option value="delta_desc" id="sortDeltaOpt" style="display:none;">Biến động — giảm nhiều nhất</option>
+    </select>
+    <div class="spacer"></div>
+    <button class="btn" id="btnExport">⬇ Xuất JSON</button>
+    <button class="btn primary" id="btnSync">☁ Đồng bộ Firebase</button>
+  </div>
+
+  <div class="table-wrap" id="tableWrap" style="display:none;">
+    <table>
+      <thead>
+        <tr>
+          <th data-k="ma_vt">Mã vật tư</th>
+          <th data-k="ten_vt">Tên vật tư</th>
+          <th>Nhóm hàng / Nhóm con</th>
+          <th>Đvt</th>
+          <th data-k="ton_cuoi" style="text-align:right;">Tồn cuối</th>
+          <th id="thDelta" style="display:none;text-align:right;">Biến động</th>
+          <th>Phân bố theo kho</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="loadmore" id="loadMoreWrap" style="display:none;">
+      <button class="btn" id="btnLoadMore">Xem thêm dòng</button>
+    </div>
+  </div>
+
+</main>
+
+<div class="drawer-backdrop" id="backdrop"></div>
+<div class="drawer" id="drawer">
+  <h2>Cấu hình Firebase Realtime Database</h2>
+  <p class="hint">Đồng bộ tồn kho lên Firebase để tất cả mọi người mở file này đều tự thấy dữ liệu mới nhất. Dữ liệu ghi vào 3 nhánh:
+  <span class="mono">tonkho_latest</span> (bản mới nhất, ai mở trang cũng tự tải), <span class="mono">tonkho_snapshots/{ngày}</span> (lưu lịch sử) và <span class="mono">tonkho_meta</span> (thời gian cập nhật).
+  Nhập ở đây chỉ áp dụng cho phiên làm việc hiện tại — để mọi người không phải tự nhập, hãy dán Database URL này vào hằng số <span class="mono">FIREBASE_CONFIG</span> ở đầu mã nguồn rồi lưu/host lại file.</p>
+  <div class="field">
+    <label>Database URL</label>
+    <input type="text" id="cfgUrl" placeholder="https://ten-du-an-default-rtdb.asia-southeast1.firebasedatabase.app">
+  </div>
+  <div class="field">
+    <label>Auth secret / token (nếu Rules yêu cầu)</label>
+    <input type="text" id="cfgSecret" placeholder="Để trống nếu Rules cho phép ghi công khai">
+  </div>
+  <button class="btn primary" id="btnSyncNow" style="width:100%;justify-content:center;">☁ Đồng bộ ngay</button>
+  <div class="sync-log" id="syncLog">Chưa đồng bộ lần nào.</div>
+</div>
+
+<div class="toast" id="toast"></div>
 </div>
 
 <!-- PROJECT MODAL -->
@@ -1199,6 +1505,11 @@ function handleLogout(){
 
 /* ================= MODULE HUB ================= */
 function enterModule(id){
+  if(id === 3){
+    document.getElementById('moduleHub').style.display = 'none';
+    document.getElementById('module3Screen').style.display = 'block';
+    return;
+  }
   if(id !== 1){
     toast('Phần mềm này đang được xây dựng, sẽ ra mắt trong thời gian tới.');
     return;
@@ -1209,6 +1520,7 @@ function enterModule(id){
 function backToModuleHub(){
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appShell').style.display = 'none';
+  document.getElementById('module3Screen').style.display = 'none';
   document.getElementById('moduleHub').style.display = 'flex';
 }
 
@@ -2883,6 +3195,595 @@ document.getElementById('loginPass').addEventListener('keydown', (e)=>{ if(e.key
 saveState();
 renderLoginUsers();
 autoReconnectFirebase();
+</script>
+
+<script>
+/* ================= MODULE 3: KIỂM TRA TỒN KHO HÀNG HÓA ================= */
+(function(){
+"use strict";
+
+  "use strict";
+
+  /* =========================================================
+     0. CẤU HÌNH FIREBASE — điền 1 lần rồi lưu/host lại file này
+        để TẤT CẢ mọi người mở cùng 1 file đều tự thấy dữ liệu
+        mới nhất, không cần tự nhập Database URL mỗi lần.
+        (Nếu để trống, mỗi người vẫn có thể tự nhập tạm trong
+        khung Cấu hình ⚙ — nhưng sẽ mất khi tải lại trang.)
+  ========================================================= */
+  const FIREBASE_CONFIG = {
+    databaseURL: 'https://stock-kho-default-rtdb.asia-southeast1.firebasedatabase.app',
+    secret: ''          // tuỳ chọn — chỉ cần nếu Rules yêu cầu xác thực khi GHI
+  };
+
+  /* =========================================================
+     1. TCVN3 (bảng mã .VnTime cũ, dùng trong Bravo) -> Unicode
+  ========================================================= */
+  const TCVN3TAB = "µ¸¶·¹¨»¾¼½Æ©ÇÊÈÉË®ÌÐÎÏÑªÒÕÓÔÖ×ÝØÜÞßãáâä«åèæçé¬êíëìîïóñòô-õøö÷ùúýûüþ¡¢§£¤¥¦";
+  const UNICODETAB = "àáảãạăằắẳẵặâầấẩẫậđèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵĂÂĐÊÔƠƯ";
+  const TCVN_MAP = {};
+  for (let i=0;i<TCVN3TAB.length;i++) TCVN_MAP[TCVN3TAB[i]] = UNICODETAB[i];
+  delete TCVN_MAP['-'];       // ký tự '-' thường (0x2D) phải giữ nguyên là dấu gạch ngang
+  TCVN_MAP['\u00ad'] = 'ư';   // byte 0xAD thực sự dùng cho chữ "ư" trong TCVN3
+
+  function conv(s){
+    if (typeof s !== 'string') return s;
+    let out = '';
+    for (const ch of s) out += (TCVN_MAP[ch] !== undefined ? TCVN_MAP[ch] : ch);
+    return out;
+  }
+
+  /* =========================================================
+     2. Parser: đọc file Bravo .xls -> danh sách vật tư phẳng
+  ========================================================= */
+  const WH_START = 3, WH_END = 23, TOTAL_COL = 24;
+
+  function round4(n){ return Math.round((n + Number.EPSILON) * 10000) / 10000; }
+  function isBlank(v){ return v == null || String(v).trim() === ''; } // SheetJS trả về "" (không phải null) cho ô trống trong file .xls cũ
+
+  function parseWorkbook(arrayBuffer){
+    const wb = XLSX.read(arrayBuffer, {type:'array'});
+    const sheetName = wb.SheetNames[0];
+    const sheet = wb.Sheets[sheetName];
+    const raw = XLSX.utils.sheet_to_json(sheet, {header:1, defval:null, raw:true});
+
+    // tìm dòng tiêu đề thật (chứa 'Kk01' ở cột thứ 4)
+    let headerRow = -1;
+    for (let r=0; r<Math.min(30, raw.length); r++){
+      if (raw[r] && raw[r][3] === 'Kk01'){ headerRow = r; break; }
+    }
+    if (headerRow === -1) throw new Error('Không tìm thấy dòng tiêu đề (cột "Kk01"). File có đúng định dạng báo cáo tồn kho Bravo không?');
+
+    const headers = raw[headerRow].map(conv);
+    const khoKeys = headers.slice(WH_START, WH_END+1); // Kk01..Kk21, Kk20dd theo đúng thứ tự cột gốc
+
+    let currentCategory = null, currentSubcategory = null;
+    const items = [];
+    const categories = new Set();
+    let grandTotalRow = null;
+    let companyHeader = raw[0] && raw[0][0] ? conv(raw[0][0]).trim() : '';
+
+    for (let r=headerRow+1; r<raw.length; r++){
+      const row = raw[r];
+      if (!row) continue;
+      const col0 = row[0], col1 = row[1], col2 = row[2];
+      if (isBlank(col0) && isBlank(col1)) continue; // dòng trống ngăn cách
+
+      const name = !isBlank(col1) ? conv(String(col1)).trim() : null;
+
+      if (isBlank(col0) && !isBlank(col1)){
+        if (name === 'Tổng cộng'){ grandTotalRow = row; break; }
+        currentCategory = name;
+        categories.add(currentCategory);
+        currentSubcategory = null;
+        continue;
+      }
+
+      const isNumericIndex = /^\d+$/.test(String(col0).trim());
+      if (!isBlank(col0) && isBlank(col2) && isNumericIndex){
+        currentSubcategory = name; // một số nhóm con trong file gốc không có nhãn tên
+        continue;
+      }
+
+      if (!isBlank(col0)){
+        const item = {
+          ma_vt: String(col0).trim(),
+          ten_vt: name || '(không có tên)',
+          dvt: !isBlank(col2) ? conv(String(col2)).trim() : '',
+          nhom_hang: currentCategory,
+          nhom_con: currentSubcategory,
+          ton_theo_kho: {},
+          ton_cuoi: round4(Number(row[TOTAL_COL]) || 0)
+        };
+        for (let c=WH_START; c<=WH_END; c++){
+          item.ton_theo_kho[headers[c]] = round4(Number(row[c]) || 0);
+        }
+        items.push(item);
+      }
+    }
+
+    let fileGrandTotal = grandTotalRow ? round4(Number(grandTotalRow[TOTAL_COL]) || 0) : null;
+    let computedTotal = round4(items.reduce((s,it)=>s+it.ton_cuoi,0));
+
+    return {
+      companyHeader,
+      khoKeys,
+      items,
+      categories: Array.from(categories),
+      fileGrandTotal,
+      computedTotal
+    };
+  }
+
+  function khoLabel(key){
+    if (key === 'Kk20dd') return 'Kho 20 (ĐD)';
+    const m = key.match(/^Kk(\d+)$/);
+    return m ? ('Kho ' + m[1]) : key;
+  }
+
+  function guessDateFromFilename(fname){
+    // vd: Bao_cao_ton_kho_tong_het_23_7_2026.xls -> 2026-07-23
+    const m = fname.match(/(\d{1,2})[_\-\.](\d{1,2})[_\-\.](\d{4})/);
+    if (m){
+      const [, d, mo, y] = m;
+      return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    }
+    return new Date().toISOString().slice(0,10);
+  }
+
+  /* =========================================================
+     3. State
+  ========================================================= */
+  let dataToday = null;   // {companyHeader, khoKeys, items, categories, fileGrandTotal, computedTotal}
+  let dataPrev = null;
+  let prevByCode = {};
+  let visibleCount = 150;
+  const PAGE_SIZE = 150;
+
+  const fmt = new Intl.NumberFormat('vi-VN');
+
+  function toast(msg, kind){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (kind ? (' '+kind) : '');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=>{ t.className='toast'; }, 3400);
+  }
+
+  function updateSourceBanner(kind, info){
+    const el = document.getElementById('sourceBanner');
+    el.style.display = 'flex';
+    if (kind === 'live'){
+      el.className = 'source-banner live';
+      el.innerHTML = `<span class="dot"></span> Đang xem dữ liệu <b>đồng bộ từ Firebase</b> — cập nhật lúc <b>${escapeHtmlSafe(info.time)}</b> (${fmt.format(info.count)} mã vật tư)<span class="spacer"></span><button id="bannerReload">Tải lại</button>`;
+      const b = document.getElementById('bannerReload');
+      if (b) b.addEventListener('click', () => loadFromFirebase({silent:false}));
+    } else if (kind === 'local'){
+      el.className = 'source-banner local';
+      el.innerHTML = `<span class="dot"></span> Đang xem file <b>${escapeHtmlSafe(info.filename)}</b> vừa tải lên cục bộ — bấm <b>"☁ Đồng bộ Firebase"</b> ở trên để mọi người cùng thấy.`;
+    } else if (kind === 'synced'){
+      el.className = 'source-banner live';
+      el.innerHTML = `<span class="dot"></span> Đã <b>đồng bộ lên Firebase</b> lúc ${escapeHtmlSafe(info.time)} — mọi người mở trang giờ đã thấy dữ liệu này.`;
+    }
+  }
+  function escapeHtmlSafe(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  /* =========================================================
+     4. Upload handling
+  ========================================================= */
+  function wireDropzone(dzId, inputId, fnId, onLoaded){
+    const dz = document.getElementById(dzId);
+    const input = document.getElementById(inputId);
+    const fnEl = document.getElementById(fnId);
+
+    dz.addEventListener('click', (e)=>{ if (e.target.tagName !== 'INPUT') input.click(); });
+    input.addEventListener('change', ()=>{ if (input.files[0]) handleFile(input.files[0]); });
+    dz.addEventListener('dragover', (e)=>{ e.preventDefault(); dz.style.borderColor='var(--accent)'; });
+    dz.addEventListener('dragleave', ()=>{ dz.style.borderColor=''; });
+    dz.addEventListener('drop', (e)=>{
+      e.preventDefault(); dz.style.borderColor='';
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+
+    function handleFile(file){
+      const reader = new FileReader();
+      reader.onload = function(ev){
+        try{
+          const parsed = parseWorkbook(ev.target.result);
+          fnEl.textContent = file.name;
+          dz.classList.add('has-file');
+          onLoaded(parsed, file.name);
+        }catch(err){
+          toast('Lỗi đọc file: ' + err.message, 'err');
+          console.error(err);
+        }
+      };
+      reader.onerror = function(){ toast('Không đọc được file.', 'err'); };
+      reader.readAsArrayBuffer(file);
+    }
+  }
+
+  wireDropzone('dzToday','fileToday','fnToday', function(parsed, fname){
+    dataToday = parsed;
+    document.getElementById('reportDateInput').value = guessDateFromFilename(fname);
+    onDataReady();
+    updateSourceBanner('local', {filename: fname});
+  });
+
+  wireDropzone('dzPrev','filePrev','fnPrev', function(parsed){
+    dataPrev = parsed;
+    prevByCode = {};
+    dataPrev.items.forEach(it => prevByCode[it.ma_vt] = it);
+    document.getElementById('thDelta').style.display = '';
+    document.getElementById('sortDeltaOpt').style.display = '';
+    renderTable(true);
+    toast('Đã nạp file so sánh — cột Biến động đã sẵn sàng.', 'ok');
+  });
+
+  function onDataReady(){
+    document.getElementById('statsRow').style.display = '';
+    document.getElementById('toolbar').style.display = '';
+    document.getElementById('tableWrap').style.display = '';
+
+    document.getElementById('statItems').textContent = fmt.format(dataToday.items.length);
+    document.getElementById('statCats').textContent = fmt.format(dataToday.categories.length);
+    document.getElementById('statTotal').textContent = fmt.format(dataToday.computedTotal);
+
+    const reconEl = document.getElementById('statRecon');
+    const reconCard = document.getElementById('reconCard');
+    const diff = dataToday.fileGrandTotal != null ? round4(dataToday.computedTotal - dataToday.fileGrandTotal) : null;
+    if (diff == null){
+      reconEl.textContent = 'Không có dòng Tổng cộng';
+      reconCard.className = 'stat-card';
+    } else if (Math.abs(diff) < 0.01){
+      reconEl.textContent = '✓ Khớp (' + fmt.format(dataToday.fileGrandTotal) + ')';
+      reconCard.className = 'stat-card ok';
+    } else {
+      reconEl.textContent = 'Lệch ' + fmt.format(diff) + ' so với file';
+      reconCard.className = 'stat-card warn';
+    }
+
+    document.getElementById('reportDatePill').textContent =
+      'Báo cáo ngày ' + (document.getElementById('reportDateInput').value || '—');
+
+    const catSel = document.getElementById('catFilter');
+    catSel.innerHTML = '<option value="">Tất cả nhóm hàng</option>' +
+      dataToday.categories.sort((a,b)=>a.localeCompare(b,'vi'))
+        .map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('');
+
+    visibleCount = PAGE_SIZE;
+    renderTable(true);
+    toast(`Đã nạp ${dataToday.items.length} mã vật tư.`, 'ok');
+  }
+
+  document.getElementById('reportDateInput').addEventListener('change', function(){
+    document.getElementById('reportDatePill').textContent = 'Báo cáo ngày ' + this.value;
+  });
+
+  /* =========================================================
+     5. Filter / sort / render table
+  ========================================================= */
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function escapeAttr(s){ return escapeHtml(s); }
+
+  function getFiltered(){
+    if (!dataToday) return [];
+    const q = document.getElementById('searchBox').value.trim().toLowerCase();
+    const cat = document.getElementById('catFilter').value;
+    const sort = document.getElementById('sortSel').value;
+
+    let list = dataToday.items.filter(it => {
+      if (cat && it.nhom_hang !== cat) return false;
+      if (q){
+        const hay = (it.ma_vt + ' ' + it.ten_vt).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    list = list.slice(); // copy before sort
+    if (sort === 'ton_desc') list.sort((a,b)=>b.ton_cuoi - a.ton_cuoi);
+    else if (sort === 'ton_asc') list.sort((a,b)=>a.ton_cuoi - b.ton_cuoi);
+    else if (sort === 'ma_asc') list.sort((a,b)=>a.ma_vt.localeCompare(b.ma_vt));
+    else if (sort === 'ten_asc') list.sort((a,b)=>a.ten_vt.localeCompare(b.ten_vt,'vi'));
+    else if (sort === 'delta_desc') list.sort((a,b)=> deltaOf(a) - deltaOf(b));
+    return list;
+  }
+
+  function deltaOf(it){
+    const prev = prevByCode[it.ma_vt];
+    if (!prev) return 0;
+    return round4(it.ton_cuoi - prev.ton_cuoi);
+  }
+
+  function drawFingerprint(canvas, item){
+    const keys = dataToday.khoKeys;
+    const ctx = canvas.getContext('2d');
+    const w = keys.length, h = 1;
+    canvas.width = w; canvas.height = h;
+    canvas.style.width = (w*4) + 'px';
+    canvas.style.height = '14px';
+    const max = Math.max(1, ...keys.map(k => item.ton_theo_kho[k] || 0));
+    for (let i=0;i<keys.length;i++){
+      const v = item.ton_theo_kho[keys[i]] || 0;
+      const t = v / max;
+      let color;
+      if (v === 0) color = '#E6E9ED';
+      else {
+        // amber intensity ramp: pale peach (low stock) -> deep burnt orange (high stock)
+        const r = Math.round(255 - t*55);
+        const g = Math.round(232 - t*145);
+        const b = Math.round(196 - t*190);
+        color = `rgb(${r},${g},${b})`;
+      }
+      ctx.fillStyle = color;
+      ctx.fillRect(i,0,1,1);
+    }
+    canvas.title = keys.map(k => `${khoLabel(k)}: ${fmt.format(item.ton_theo_kho[k]||0)}`).join('\n');
+  }
+
+  function renderTable(reset){
+    if (reset) visibleCount = PAGE_SIZE;
+    const tbody = document.getElementById('tbody');
+    const list = getFiltered();
+    const showList = list.slice(0, visibleCount);
+
+    if (list.length === 0){
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Không tìm thấy vật tư phù hợp.</td></tr>';
+      document.getElementById('loadMoreWrap').style.display = 'none';
+      return;
+    }
+
+    const hasDelta = document.getElementById('thDelta').style.display !== 'none';
+    tbody.innerHTML = showList.map((it, idx) => {
+      const grp = `<span class="grp"><b>${escapeHtml(it.nhom_hang||'—')}</b>${it.nhom_con ? '<br>'+escapeHtml(it.nhom_con) : ''}</span>`;
+      let deltaCell = '';
+      if (hasDelta){
+        const d = deltaOf(it);
+        const prevExists = !!prevByCode[it.ma_vt];
+        if (!prevExists) deltaCell = '<td class="num"><span class="delta flat">mới</span></td>';
+        else if (d > 0) deltaCell = `<td class="num"><span class="delta up">▲ ${fmt.format(d)}</span></td>`;
+        else if (d < 0) deltaCell = `<td class="num"><span class="delta down">▼ ${fmt.format(Math.abs(d))}</span></td>`;
+        else deltaCell = '<td class="num"><span class="delta flat">0</span></td>';
+      }
+      return `<tr data-idx="${idx}" class="row-main">
+        <td class="code">${escapeHtml(it.ma_vt)}</td>
+        <td>${escapeHtml(it.ten_vt)}</td>
+        <td>${grp}</td>
+        <td>${escapeHtml(it.dvt)}</td>
+        <td class="num">${fmt.format(it.ton_cuoi)}</td>
+        ${deltaCell}
+        <td><canvas class="fp" data-fpidx="${idx}"></canvas></td>
+        <td><span class="chev">▸</span></td>
+      </tr>
+      <tr class="detail-tpl" data-detail-for="${idx}" style="display:none;"></tr>`;
+    }).join('');
+
+    // draw fingerprints after DOM insert
+    tbody.querySelectorAll('canvas.fp').forEach(c => {
+      const idx = +c.dataset.fpidx;
+      drawFingerprint(c, showList[idx]);
+    });
+
+    // row click -> expand detail
+    tbody.querySelectorAll('tr.row-main').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const idx = tr.dataset.idx;
+        const detailTr = tbody.querySelector(`tr[data-detail-for="${idx}"]`);
+        const chev = tr.querySelector('.chev');
+        const isOpen = detailTr.style.display !== 'none';
+        if (isOpen){
+          detailTr.style.display = 'none';
+          chev.classList.remove('open');
+          return;
+        }
+        chev.classList.add('open');
+        const it = showList[+idx];
+        const cells = dataToday.khoKeys.map(k => {
+          const v = it.ton_theo_kho[k] || 0;
+          return `<div class="kho-cell ${v===0?'zero':''}"><div class="kn">${khoLabel(k)}</div><div class="kv">${fmt.format(v)}</div></div>`;
+        }).join('');
+        detailTr.innerHTML = `<td colspan="8"><div class="kho-grid">${cells}</div></td>`;
+        detailTr.style.display = '';
+      });
+    });
+
+    document.getElementById('loadMoreWrap').style.display = (list.length > visibleCount) ? '' : 'none';
+  }
+
+  document.getElementById('btnLoadMore').addEventListener('click', () => {
+    visibleCount += PAGE_SIZE;
+    renderTable(false);
+  });
+  document.getElementById('searchBox').addEventListener('input', () => renderTable(true));
+  document.getElementById('catFilter').addEventListener('change', () => renderTable(true));
+  document.getElementById('sortSel').addEventListener('change', () => renderTable(true));
+
+  document.querySelectorAll('thead th[data-k]').forEach(th => {
+    th.addEventListener('click', () => {
+      const k = th.dataset.k;
+      const sel = document.getElementById('sortSel');
+      if (k === 'ton_cuoi') sel.value = sel.value === 'ton_desc' ? 'ton_asc' : 'ton_desc';
+      else if (k === 'ma_vt') sel.value = 'ma_asc';
+      else if (k === 'ten_vt') sel.value = 'ten_asc';
+      renderTable(true);
+    });
+  });
+
+  /* =========================================================
+     6. Export JSON
+  ========================================================= */
+  document.getElementById('btnExport').addEventListener('click', () => {
+    if (!dataToday) return;
+    const payload = {
+      ngay_bao_cao: document.getElementById('reportDateInput').value,
+      cong_ty: dataToday.companyHeader,
+      tong_ma_vt: dataToday.items.length,
+      tong_ton_kho: dataToday.computedTotal,
+      danh_sach_kho: dataToday.khoKeys,
+      vat_tu: dataToday.items
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `tonkho_${payload.ngay_bao_cao || 'export'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  /* =========================================================
+     7. Firebase RTDB sync (qua REST API, không cần SDK)
+  ========================================================= */
+  const backdrop = document.getElementById('backdrop');
+  const drawer = document.getElementById('drawer');
+  function openDrawer(){ backdrop.classList.add('open'); drawer.classList.add('open'); }
+  function closeDrawer(){ backdrop.classList.remove('open'); drawer.classList.remove('open'); }
+  document.getElementById('settingsBtn').addEventListener('click', openDrawer);
+  backdrop.addEventListener('click', closeDrawer);
+
+  function logSync(msg){
+    const el = document.getElementById('syncLog');
+    const time = new Date().toLocaleTimeString('vi-VN');
+    el.textContent = `[${time}] ${msg}\n` + el.textContent;
+  }
+
+  function sanitizeKey(k){
+    return String(k).replace(/[.#$/\[\]]/g, '_');
+  }
+
+  async function syncToFirebase(){
+    if (!dataToday){ toast('Chưa có dữ liệu để đồng bộ.', 'err'); return; }
+    const url = document.getElementById('cfgUrl').value.trim().replace(/\/$/,'');
+    const secret = document.getElementById('cfgSecret').value.trim();
+    if (!url){ toast('Vui lòng nhập Database URL trong phần Cấu hình.', 'err'); openDrawer(); return; }
+    const date = document.getElementById('reportDateInput').value || new Date().toISOString().slice(0,10);
+
+    const latestObj = {};
+    dataToday.items.forEach(it => { latestObj[sanitizeKey(it.ma_vt)] = it; });
+
+    const authParam = secret ? `?auth=${encodeURIComponent(secret)}` : '';
+    const btn = document.getElementById('btnSync');
+    const btn2 = document.getElementById('btnSyncNow');
+    [btn, btn2].forEach(b=>{ if(b){ b.disabled = true; }});
+
+    try{
+      logSync('Bắt đầu đồng bộ...');
+      const r1 = await fetch(`${url}/tonkho_latest.json${authParam}`, {
+        method:'PUT', body: JSON.stringify(latestObj)
+      });
+      if (!r1.ok) throw new Error('tonkho_latest: HTTP ' + r1.status + ' — ' + await r1.text());
+      logSync(`✓ Đã ghi tonkho_latest (${dataToday.items.length} mã vật tư)`);
+
+      const r2 = await fetch(`${url}/tonkho_snapshots/${date}.json${authParam}`, {
+        method:'PUT', body: JSON.stringify(latestObj)
+      });
+      if (!r2.ok) throw new Error('tonkho_snapshots: HTTP ' + r2.status + ' — ' + await r2.text());
+      logSync(`✓ Đã lưu snapshot ngày ${date}`);
+
+      const meta = {
+        cap_nhat_luc: new Date().toISOString(),
+        ngay_bao_cao: date,
+        cong_ty: dataToday.companyHeader,
+        kho_keys: dataToday.khoKeys,
+        tong_ma_vt: dataToday.items.length,
+        tong_nhom_hang: dataToday.categories.length,
+        tong_ton_kho: dataToday.computedTotal
+      };
+      const r3 = await fetch(`${url}/tonkho_meta.json${authParam}`, {
+        method:'PUT', body: JSON.stringify(meta)
+      });
+      if (!r3.ok) throw new Error('tonkho_meta: HTTP ' + r3.status);
+      logSync('✓ Đã cập nhật tonkho_meta');
+
+      toast('Đồng bộ Firebase thành công!', 'ok');
+      updateSourceBanner('synced', {time: new Date().toLocaleString('vi-VN')});
+    }catch(err){
+      logSync('✗ Lỗi: ' + err.message);
+      toast('Đồng bộ thất bại: ' + err.message, 'err');
+      console.error(err);
+    }finally{
+      [btn, btn2].forEach(b=>{ if(b){ b.disabled = false; }});
+    }
+  }
+
+  document.getElementById('btnSync').addEventListener('click', () => {
+    const url = document.getElementById('cfgUrl').value.trim();
+    if (!url){ openDrawer(); return; }
+    syncToFirebase();
+  });
+  document.getElementById('btnSyncNow').addEventListener('click', syncToFirebase);
+
+  /* ---- Chế độ xem (viewer): tự tải dữ liệu mới nhất từ Firebase ---- */
+  function currentDbUrl(){
+    const fromField = document.getElementById('cfgUrl').value.trim();
+    return (fromField || FIREBASE_CONFIG.databaseURL || '').replace(/\/$/,'');
+  }
+  function currentSecret(){
+    return document.getElementById('cfgSecret').value.trim() || FIREBASE_CONFIG.secret || '';
+  }
+
+  async function loadFromFirebase(opts){
+    opts = opts || {};
+    const url = currentDbUrl();
+    if (!url){ if (!opts.silent){ toast('Chưa cấu hình Database URL.', 'err'); openDrawer(); } return; }
+    const secret = currentSecret();
+    const authParam = secret ? `?auth=${encodeURIComponent(secret)}` : '';
+    const reloadBtn = document.getElementById('reloadBtn');
+    if (reloadBtn) reloadBtn.style.opacity = '.4';
+
+    try{
+      const [rLatest, rMeta] = await Promise.all([
+        fetch(`${url}/tonkho_latest.json${authParam}`),
+        fetch(`${url}/tonkho_meta.json${authParam}`)
+      ]);
+      if (!rLatest.ok) throw new Error('HTTP ' + rLatest.status);
+      const latestObj = await rLatest.json();
+      const meta = rMeta.ok ? await rMeta.json() : null;
+
+      if (!latestObj){
+        if (!opts.silent) toast('Chưa có dữ liệu nào được đồng bộ lên Firebase.', 'err');
+        return;
+      }
+
+      const items = Object.values(latestObj);
+      if (items.length === 0){
+        if (!opts.silent) toast('Dữ liệu trên Firebase đang trống.', 'err');
+        return;
+      }
+
+      const khoKeys = (meta && meta.kho_keys) ? meta.kho_keys : Object.keys(items[0].ton_theo_kho || {});
+      const categories = Array.from(new Set(items.map(it => it.nhom_hang).filter(Boolean)));
+      const computedTotal = round4(items.reduce((s,it)=>s + (it.ton_cuoi||0), 0));
+
+      dataToday = {
+        companyHeader: (meta && meta.cong_ty) || '',
+        khoKeys, items, categories,
+        fileGrandTotal: (meta && meta.tong_ton_kho != null) ? meta.tong_ton_kho : null,
+        computedTotal
+      };
+      document.getElementById('reportDateInput').value = (meta && meta.ngay_bao_cao) || '';
+      onDataReady();
+
+      const timeStr = meta && meta.cap_nhat_luc ? new Date(meta.cap_nhat_luc).toLocaleString('vi-VN') : '—';
+      updateSourceBanner('live', {time: timeStr, count: items.length});
+      if (!opts.silent) toast('Đã tải dữ liệu mới nhất từ Firebase.', 'ok');
+    }catch(err){
+      if (!opts.silent){ toast('Không tải được dữ liệu từ Firebase: ' + err.message, 'err'); }
+      console.error(err);
+    }finally{
+      if (reloadBtn) reloadBtn.style.opacity = '';
+    }
+  }
+
+  document.getElementById('reloadBtn').addEventListener('click', () => loadFromFirebase({silent:false}));
+
+  /* ---- khởi động: điền sẵn config đã "đóng cứng" + tự tải dữ liệu cho người xem ---- */
+  if (FIREBASE_CONFIG.databaseURL) document.getElementById('cfgUrl').value = FIREBASE_CONFIG.databaseURL;
+  if (FIREBASE_CONFIG.secret) document.getElementById('cfgSecret').value = FIREBASE_CONFIG.secret;
+  if (FIREBASE_CONFIG.databaseURL) loadFromFirebase({silent:true});
+
+
+})();
 </script>
 </body>
 </html>
