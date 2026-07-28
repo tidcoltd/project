@@ -288,6 +288,9 @@
   .mini-table td{padding:6px 8px; border-bottom:1px solid var(--paper-200); font-size:12.5px;}
   .mini-table td.num{text-align:right; font-family:'IBM Plex Mono';}
   .inline-form{display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; background:var(--paper-50); padding:10px; border-radius:2px; border:1px solid var(--paper-200);}
+  .note-item{background:#fff; border:1px solid var(--paper-200); border-left:3px solid var(--orange-600); border-radius:2px; padding:10px 12px; margin-bottom:8px;}
+  .note-item .note-meta{display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; font-size:11px; color:var(--steel-500); font-family:'IBM Plex Mono';}
+  .note-item .note-content{font-size:13px; color:var(--ink-900); white-space:pre-wrap; line-height:1.5;}
   .inline-form .field{margin-bottom:0; flex:1; min-width:100px;}
   .permission-note{font-size:11.5px; color:var(--steel-500); background:var(--paper-100); padding:8px 10px; border-radius:2px; margin-top:10px;}
   .locked-field{background:var(--paper-100) !important; color:var(--steel-500);}
@@ -578,7 +581,7 @@
     <div class="hub-card" onclick="enterModule(1)">
       <div class="hub-num">MODULE 01</div>
       <h3>Theo dõi quản lý hàng hóa &amp; dự án</h3>
-      <div class="hub-desc">Quản lý danh sách dự án, hàng hóa, PO đặt hàng, đợt giao hàng, thanh toán, công nợ.</div>
+      <div class="hub-desc">Quản lý danh sách dự án, hàng hóa, PO đặt hàng, đợt giao hàng, thanh toán.</div>
       <div class="hub-foot"><span class="stamp stamp-green">Đang sử dụng</span></div>
     </div>
     <div class="hub-card disabled" onclick="enterModule(2)">
@@ -620,7 +623,7 @@
         <input type="password" id="loginPass" placeholder="Nhập mật khẩu">
       </div>
       <button class="btn btn-primary btn-block" onclick="handleLogin()">Đăng nhập</button>
-      <div class="login-hint">Tài khoản: Vui lòng chọn tài khoản và nhập mật khẩu đã cung cấp để truy cập phần mềm.</div>
+      <div class="login-hint">Tài khoản:Vui lòng chọn tài khoản và nhập mật khẩu đã cung cấp để truy cập phần mềm.</div>
       <div style="text-align:center; margin-top:16px;"><a href="#" onclick="backToModuleHub(); return false;" style="font-size:12px; color:var(--steel-500); text-decoration:none;">← Chọn phần mềm khác</a></div>
     </div>
   </div>
@@ -989,6 +992,28 @@
   </div>
 </div>
 
+<!-- NOTES MODAL -->
+<div class="overlay" id="notesModal">
+  <div class="modal wide">
+    <div class="modal-head">
+      <h2>Ghi chú dự án</h2>
+      <button class="modal-close" onclick="closeModal('notesModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="noteProjectId">
+      <div id="notesListWrap"></div>
+      <div class="inline-form" id="noteFormWrap" style="align-items:flex-start;">
+        <div class="field" style="flex:1 1 100%;">
+          <label>Nội dung ghi chú</label>
+          <textarea id="noteContent" placeholder="Nhập nội dung ghi chú cho dự án này..." style="min-height:70px;"></textarea>
+        </div>
+        <button class="btn btn-dark btn-sm" onclick="addNote()">+ Thêm ghi chú</button>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('notesModal')">Đóng</button></div>
+  </div>
+</div>
+
 <!-- IMPORT EXCEL MODAL -->
 <div class="overlay" id="importModal">
   <div class="modal wide">
@@ -1342,8 +1367,9 @@ function defaultState(){
     ],
     firebase: {config: DEFAULT_FIREBASE_CONFIG, enabled:true},
     permissions: defaultPermissions(),
-    deletedIds: {projects:[], items:[], poBatches:[], deliveries:[], payments:[], users:[]},
+    deletedIds: {projects:[], items:[], poBatches:[], deliveries:[], payments:[], users:[], notes:[]},
     activityLog: [],
+    notes: [],
     session: {userId:null},
     ui: {currentProjectId:demoProjId, view:'dashboard'}
   };
@@ -1370,7 +1396,9 @@ if(!state.firebase.config){
 if(!state.permissions) state.permissions = defaultPermissions();
 if(!state.payments) state.payments = [];
 if(!state.deletedIds) state.deletedIds = {projects:[], items:[], poBatches:[], deliveries:[], payments:[], users:[]};
+if(!state.deletedIds.notes) state.deletedIds.notes = [];
 if(!state.activityLog) state.activityLog = [];
+if(!state.notes) state.notes = [];
 ['projects','items','poBatches','deliveries','payments','users'].forEach(t=>{ if(!state.deletedIds[t]) state.deletedIds[t] = []; });
 function markDeleted(table, id){
   if(!state.deletedIds[table]) state.deletedIds[table] = [];
@@ -1408,6 +1436,7 @@ const PERMISSION_ACTIONS = [
   {key:'managePO', label:'Quản lý PO đặt hàng'},
   {key:'manageDeliveries', label:'Quản lý / cập nhật giao hàng'},
   {key:'managePayments', label:'Quản lý giá trị thanh toán'},
+  {key:'manageNotes', label:'Thêm / xóa ghi chú dự án'},
   {key:'manageUsers', label:'Quản lý người dùng'},
   {key:'manageSettings', label:'Cấu hình đồng bộ Firebase'},
   {key:'viewActivityLog', label:'Xem Nhật ký hoạt động'},
@@ -1422,6 +1451,7 @@ function defaultPermissions(){
     managePO: ['Admin','Sales'],
     manageDeliveries: ['Admin','Sales'],
     managePayments: ['Admin','Kế toán'],
+    manageNotes: ['Admin','Sales','Kế toán'],
     manageUsers: ['Admin'],
     manageSettings: ['Admin'],
     viewActivityLog: ['Admin'],
@@ -1661,6 +1691,11 @@ function renderMain(){
       <div class="stat-card ${remainingUnpaid>0?'stat-card-warn':'stat-card-ok'}">
         <div class="lbl">Giá trị còn lại chưa thanh toán</div>
         <div class="val">${fmtMoney(remainingUnpaid)}</div>
+      </div>
+      <div class="stat-card stat-card-action" onclick="openNotesModal('${proj.id}')">
+        <div class="lbl">📝 Ghi chú</div>
+        <div class="val">${state.notes.filter(n=>n.projectId===proj.id).length}</div>
+        <div class="stat-card-hint">👆 Bấm để xem / thêm</div>
       </div>
     </div>
 
@@ -1976,6 +2011,7 @@ function deleteProject(id){
   state.poBatches.filter(p=>itemIds.includes(p.itemId)).forEach(p=>{ markDeleted('poBatches', p.id); fbDelete('poBatches', p.id); });
   state.deliveries.filter(d=>itemIds.includes(d.itemId)).forEach(d=>{ markDeleted('deliveries', d.id); fbDelete('deliveries', d.id); });
   state.payments.filter(p=>p.projectId===id).forEach(p=>{ markDeleted('payments', p.id); fbDelete('payments', p.id); });
+  state.notes.filter(n=>n.projectId===id).forEach(n=>{ markDeleted('notes', n.id); fbDelete('notes', n.id); });
   itemIds.forEach(iid=>{ markDeleted('items', iid); fbDelete('items', iid); });
   markDeleted('projects', id);
   fbDelete('projects', id);
@@ -1983,6 +2019,7 @@ function deleteProject(id){
   state.poBatches = state.poBatches.filter(p=>!itemIds.includes(p.itemId));
   state.deliveries = state.deliveries.filter(d=>!itemIds.includes(d.itemId));
   state.payments = state.payments.filter(p=>p.projectId!==id);
+  state.notes = state.notes.filter(n=>n.projectId!==id);
   state.projects = state.projects.filter(p=>p.id!==id);
   if(state.ui.currentProjectId === id) state.ui.currentProjectId = (state.projects[0]||{}).id || null;
   saveState();
@@ -2788,6 +2825,67 @@ function removePayment(id){
   renderMain();
 }
 
+/* ================= PROJECT NOTES ================= */
+let noteProjectId = null;
+function openNotesModal(projectId){
+  noteProjectId = projectId;
+  document.getElementById('noteProjectId').value = projectId;
+  document.getElementById('noteContent').value = '';
+  document.getElementById('noteFormWrap').style.display = can('manageNotes') ? 'flex' : 'none';
+  renderNotesModal();
+  openModal('notesModal');
+}
+function renderNotesModal(){
+  const proj = state.projects.find(p=>p.id===noteProjectId);
+  if(!proj) return;
+  const notes = state.notes.filter(n=>n.projectId===noteProjectId).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  const wrap = document.getElementById('notesListWrap');
+  if(notes.length === 0){
+    wrap.innerHTML = `<div class="permission-note">Chưa có ghi chú nào cho dự án này.</div>`;
+    return;
+  }
+  wrap.innerHTML = notes.map(n => `
+    <div class="note-item">
+      <div class="note-meta">
+        <span>${n.userName||'—'} · ${n.updatedAt ? new Date(n.updatedAt).toLocaleString('vi-VN') : ''}</span>
+        ${can('manageNotes') ? `<button class="icon-link" onclick="removeNote('${n.id}')">Xóa</button>` : ''}
+      </div>
+      <div class="note-content">${escapeHtmlNote(n.content)}</div>
+    </div>
+  `).join('');
+}
+function escapeHtmlNote(s){
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function addNote(){
+  if(!can('manageNotes')){ toast('Bạn không có quyền thêm ghi chú.', true); return; }
+  const content = document.getElementById('noteContent').value.trim();
+  if(!content){ toast('Vui lòng nhập nội dung ghi chú.', true); return; }
+  const u = currentUser();
+  const newNote = touch({id:uid('nt'), projectId:noteProjectId, content, userId: u?u.id:'', userName: u?u.name:'Hệ thống'});
+  state.notes.push(newNote);
+  fbPut('notes', newNote);
+  const proj = state.projects.find(p=>p.id===noteProjectId);
+  logActivity('add', 'note', proj ? proj.name : noteProjectId, content.length>60 ? content.slice(0,60)+'…' : content);
+  document.getElementById('noteContent').value = '';
+  saveState();
+  renderNotesModal();
+  renderMain();
+  toast('Đã thêm ghi chú.');
+}
+function removeNote(id){
+  if(!can('manageNotes')) return;
+  const note = state.notes.find(n=>n.id===id);
+  const proj = note ? state.projects.find(p=>p.id===note.projectId) : null;
+  markDeleted('notes', id);
+  fbDelete('notes', id);
+  state.notes = state.notes.filter(n=>n.id!==id);
+  saveState();
+  logActivity('delete', 'note', proj ? proj.name : (note?note.projectId:id), note ? (note.content.length>60?note.content.slice(0,60)+'…':note.content) : '');
+  renderNotesModal();
+  renderMain();
+}
+
 /* ================= USERS ================= */
 function openUsersModal(){
   if(!can('manageUsers')){ toast('Bạn không có quyền quản lý người dùng.', true); return; }
@@ -2931,7 +3029,7 @@ const ENTITY_TYPE_LABELS = {
   project: 'Dự án', item: 'Hàng hóa', po: 'PO đặt hàng', delivery: 'Đợt giao hàng',
   payment: 'Thanh toán', user: 'Người dùng', permission: 'Phân quyền', import: 'Nhập Excel',
   bulk_delivery: 'Cập nhật giao hàng hàng loạt', bulk_po: 'Cập nhật PO hàng loạt',
-  bulk_import_status: 'Cập nhật tiến độ nhập hàng hàng loạt', password: 'Mật khẩu',
+  bulk_import_status: 'Cập nhật tiến độ nhập hàng hàng loạt', password: 'Mật khẩu', note: 'Ghi chú',
 };
 const ACTION_LABELS = { add:'Thêm', edit:'Sửa', delete:'Xóa' };
 function actionStampClass(action){
@@ -3014,7 +3112,7 @@ function exportActivityLogExcel(){
 }
 
 /* ================= FIREBASE REALTIME SYNC ================= */
-const FIREBASE_TABLES = ['projects','items','poBatches','deliveries','payments','users','activityLog'];
+const FIREBASE_TABLES = ['projects','items','poBatches','deliveries','payments','users','activityLog','notes'];
 const FIREBASE_RULES = `{
   "rules": {
     "data": {
@@ -3150,6 +3248,7 @@ function refreshOpenViews(){
   if(document.getElementById('deliveryListModal').classList.contains('show') && typeof deliveryListProjectId!=='undefined' && deliveryListProjectId) renderDeliveryListModal();
   if(document.getElementById('usersModal').classList.contains('show')){ renderUsersTable(); renderPermTable(); }
   if(document.getElementById('activityLogModal').classList.contains('show')) renderActivityLogTable();
+  if(document.getElementById('notesModal').classList.contains('show') && typeof noteProjectId!=='undefined' && noteProjectId) renderNotesModal();
 }
 
 function fbPut(table, record){
