@@ -875,6 +875,7 @@
           <option>Ngưng nhập</option>
         </select>
       </div>
+      <div class="field"><label>Ghi chú</label><textarea id="itNote" placeholder="Ghi chú riêng cho mặt hàng này..." style="min-height:60px;"></textarea></div>
       <div class="permission-note" id="itemFieldNote"></div>
     </div>
     <div class="modal-foot">
@@ -1422,7 +1423,7 @@ function logActivity(action, entityType, label, extra){
   fbPut('activityLog', entry);
 }
 state.projects.forEach(p=>{ if(p.system===undefined) p.system=''; if(p.progress===undefined) p.progress='Chưa khởi công'; if(p.progressPct===undefined) p.progressPct=0; });
-state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; if(i.vat===undefined) i.vat=0; });
+state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; if(i.vat===undefined) i.vat=0; if(i.note===undefined) i.note=''; });
 
 /* ================= PERMISSIONS ================= */
 function currentUser(){ return state.users.find(u => u.id === state.session.userId); }
@@ -1901,6 +1902,7 @@ function renderItemsTable(){
           <th>Tình trạng T&amp;C</th>
           <th>Tiến độ nhập hàng</th>
           <th>Chứng từ</th>
+          <th>Ghi chú</th>
           <th></th>
         </tr>
       </thead>
@@ -1942,6 +1944,7 @@ function rowHtml(it, stt){
       <td><span class="stamp ${statusStampClass(it.status)}">${it.status}</span></td>
       <td><span class="stamp ${importStatusStampClass(it.importStatus)}">${it.importStatus||'Chờ duyệt'}</span></td>
       <td style="max-width:140px; font-size:11.5px; color:var(--ink-600);">${it.doc||'—'}</td>
+      <td style="max-width:160px; font-size:11.5px; color:var(--ink-600); white-space:pre-wrap;">${it.note||'—'}</td>
       <td>
         <div class="row-actions">
           <button class="icon-link" onclick="openDetailModal('${it.id}')">Chi tiết</button>
@@ -2055,6 +2058,7 @@ function openItemModal(id, projectId){
   document.getElementById('itPrice').value = it.price;
   document.getElementById('itVat').value = it.vat||0;
   document.getElementById('itDoc').value = it.doc;
+  document.getElementById('itNote').value = it.note||'';
   document.getElementById('itStatus').value = it.status;
   document.getElementById('itImportStatus').value = it.importStatus||'Chờ duyệt';
   recalcItemTotal();
@@ -2087,6 +2091,7 @@ function saveItem(){
     unit: document.getElementById('itUnit').value.trim(),
     status: document.getElementById('itStatus').value,
     importStatus: document.getElementById('itImportStatus').value,
+    note: document.getElementById('itNote').value.trim(),
   };
   if(can('editFinance')){
     payload.price = Number(document.getElementById('itPrice').value)||0;
@@ -2238,13 +2243,13 @@ function removeDelivery(id){
 }
 
 /* ================= IMPORT FROM EXCEL ================= */
-const IMPORT_HEADERS = ['Tên sản phẩm','Hệ thống','Thương hiệu','Xuất xứ','Mã hàng','Thông số kỹ thuật','Số lượng','Đơn vị tính','Đơn giá','VAT (%)','Chứng từ cung cấp','Tình trạng T&C','Tiến độ nhập hàng'];
+const IMPORT_HEADERS = ['Tên sản phẩm','Hệ thống','Thương hiệu','Xuất xứ','Mã hàng','Thông số kỹ thuật','Số lượng','Đơn vị tính','Đơn giá','VAT (%)','Chứng từ cung cấp','Tình trạng T&C','Tiến độ nhập hàng','Ghi chú'];
 let importParsedRows = [];
 
 function downloadImportTemplate(){
   const ws = XLSX.utils.aoa_to_sheet([
     IMPORT_HEADERS,
-    ['Máy bơm ly tâm trục ngang','Hệ thống cơ khí','Grundfos','Đan Mạch','PUMP-CN-050','Q=50m3/h, H=32m, 3 pha, 380V','4','bộ','38500000','8','CO/CQ, Invoice INV-0021','Đang giao hàng','Chờ duyệt'],
+    ['Máy bơm ly tâm trục ngang','Hệ thống cơ khí','Grundfos','Đan Mạch','PUMP-CN-050','Q=50m3/h, H=32m, 3 pha, 380V','4','bộ','38500000','8','CO/CQ, Invoice INV-0021','Đang giao hàng','Chờ duyệt',''],
   ]);
   ws['!cols'] = IMPORT_HEADERS.map(()=>({wch:22}));
   const wb = XLSX.utils.book_new();
@@ -2339,6 +2344,7 @@ function confirmImport(){
       doc: financeAllowed ? String(r['Chứng từ cung cấp']||'').trim() : '',
       status,
       importStatus,
+      note: String(r['Ghi chú']||'').trim(),
     });
     state.items.push(newItem);
     newItems.push(newItem);
@@ -2360,7 +2366,7 @@ function exportItemsExcel(projectId){
   const aoa = [
     ['STT','Tên sản phẩm','Hệ thống','Thương hiệu','Xuất xứ','Mã hàng','Thông số kỹ thuật',
      'SL hợp đồng','Đơn vị tính','Đơn giá','VAT (%)','Thành tiền',
-     'SL PO đặt hàng','SL đã giao','SL còn lại','Tình trạng T&C','Tiến độ nhập hàng','Chứng từ cung cấp']
+     'SL PO đặt hàng','SL đã giao','SL còn lại','Tình trạng T&C','Tiến độ nhập hàng','Chứng từ cung cấp','Ghi chú']
   ];
   items.forEach((it, idx)=>{
     const poQty = itemPOTotal(it.id);
@@ -2370,7 +2376,7 @@ function exportItemsExcel(projectId){
     aoa.push([
       idx+1, it.name, it.system||'', it.brand||'', it.origin||'', it.code||'', it.spec||'',
       it.qty, it.unit||'', it.price, it.vat||0, total,
-      poQty, delivered, remaining, it.status||'', it.importStatus||'', it.doc||''
+      poQty, delivered, remaining, it.status||'', it.importStatus||'', it.doc||'', it.note||''
     ]);
   });
   const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -3228,7 +3234,7 @@ function attachFirebaseListeners(){
     fbDb.ref('data/'+table).on('value', snap=>{
       const val = snap.val() || {};
       state[table] = Object.keys(val).map(k=>val[k]);
-      if(table==='items') state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; if(i.vat===undefined) i.vat=0; });
+      if(table==='items') state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; if(i.vat===undefined) i.vat=0; if(i.note===undefined) i.note=''; });
       saveState();
       refreshOpenViews();
     });
