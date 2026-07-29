@@ -575,7 +575,7 @@
   <div class="hub-header">
     <div class="eyebrow">TID CO., LTD</div>
     <h1>Chọn phần mềm</h1>
-    <p>Bộ công cụ nội bộ phòng Vật tư – Dự án. Chọn 1 module để bắt đầu.</p>
+    <p>Bộ công cụ nội bộ phòng Kinh doanh Dự án. Chọn 1 module để bắt đầu.</p>
   </div>
   <div class="hub-grid">
     <div class="hub-card" onclick="enterModule(1)">
@@ -1388,7 +1388,7 @@ function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); 
 let state = loadState() || defaultState();
 if(!state.ui) state.ui = {currentProjectId: (state.projects[0]||{}).id || null, view:'dashboard'};
 if(!state.ui.view) state.ui.view = 'dashboard';
-if(!state.ui.itemFilters) state.ui.itemFilters = {search:'', system:'', status:'', delivery:''};
+if(!state.ui.itemFilters) state.ui.itemFilters = {search:'', system:'', status:'', delivery:'', importStatus:''};
 if(!state.firebase) state.firebase = {config:null, enabled:false};
 if(!state.firebase.config){
   state.firebase.config = DEFAULT_FIREBASE_CONFIG;
@@ -1604,7 +1604,7 @@ function renderProjectList(){
 function selectProject(id){
   state.ui.currentProjectId = id;
   state.ui.view = 'project';
-  state.ui.itemFilters = {search:'', system:'', status:'', delivery:''};
+  state.ui.itemFilters = {search:'', system:'', status:'', delivery:'', importStatus:''};
   saveState();
   renderProjectList();
   renderMain();
@@ -1821,6 +1821,13 @@ function renderFilterBarHtml(items){
           <option value="over" ${f.delivery==='over'?'selected':''}>Giao vượt số lượng</option>
         </select>
       </div>
+      <div class="field" style="min-width:180px;">
+        <label>Tiến độ nhập hàng</label>
+        <select id="fltImportStatus" onchange="onItemFilterChange()">
+          <option value="">Tất cả tiến độ</option>
+          ${IMPORT_STATUS_OPTIONS.map(s=>`<option value="${s}" ${f.importStatus===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
       <button class="btn btn-ghost btn-sm" style="align-self:flex-end;" onclick="clearItemFilters()">Xóa lọc</button>
     </div>
   `;
@@ -1831,22 +1838,24 @@ function onItemFilterChange(){
     system: document.getElementById('fltSystem').value,
     status: document.getElementById('fltStatus').value,
     delivery: document.getElementById('fltDelivery').value,
+    importStatus: document.getElementById('fltImportStatus').value,
   };
   saveState();
   renderItemsTable();
 }
 function clearItemFilters(){
-  state.ui.itemFilters = {search:'', system:'', status:'', delivery:''};
+  state.ui.itemFilters = {search:'', system:'', status:'', delivery:'', importStatus:''};
   saveState();
   renderMain();
 }
 function applyItemFilters(items){
-  const f = state.ui.itemFilters || {search:'', system:'', status:'', delivery:''};
+  const f = state.ui.itemFilters || {search:'', system:'', status:'', delivery:'', importStatus:''};
   const q = (f.search||'').trim().toLowerCase();
   return items.filter(it=>{
     if(q && !((it.name+it.code).toLowerCase().includes(q))) return false;
     if(f.system && (it.system||'') !== f.system) return false;
     if(f.status && (it.status||'') !== f.status) return false;
+    if(f.importStatus && (it.importStatus||'Chờ duyệt') !== f.importStatus) return false;
     if(f.delivery){
       const delivered = itemDeliveredQty(it.id);
       if(f.delivery === 'none' && !(delivered <= 0)) return false;
