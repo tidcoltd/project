@@ -209,6 +209,7 @@
   .stat-card-action{cursor:pointer; border-color:var(--orange-600); transition:background .12s ease;}
   .stat-card-action:hover{background:var(--paper-100);}
   .stat-card-hint{font-size:10.5px; color:var(--orange-600); margin-top:5px; font-weight:600;}
+  .stat-card-sub{font-size:11px; color:var(--steel-500); margin-top:3px; font-family:'IBM Plex Mono';}
   .stat-card-warn .val{color:var(--red-600);}
   .stat-card-ok .val{color:var(--green-600);}
 
@@ -843,6 +844,15 @@
       </div>
       <div class="field"><label>Thông số kỹ thuật</label><textarea id="itSpec" placeholder="VD: Q=50m3/h, H=32m, 3-phase, 380V, IP55..."></textarea></div>
       <div class="grid-2">
+        <div class="field"><label>Theo Hợp đồng / Phụ lục</label>
+          <select id="itContractType">
+            <option>Hợp đồng</option>
+            <option>Phụ lục</option>
+          </select>
+        </div>
+        <div class="field"><label>Số/Tên Phụ lục (nếu có)</label><input id="itContractRef" placeholder="VD: Phụ lục số 02 - bổ sung thiết bị"></div>
+      </div>
+      <div class="grid-2">
         <div class="field"><label>Thương hiệu</label><input id="itBrand" placeholder="VD: Grundfos, Ebara..."></div>
         <div class="field"><label>Xuất xứ</label><input id="itOrigin" placeholder="VD: Đức, Nhật Bản, Việt Nam..."></div>
       </div>
@@ -869,6 +879,7 @@
       <div class="field"><label>Tiến độ nhập hàng</label>
         <select id="itImportStatus">
           <option>Chờ duyệt</option>
+          <option>Đã duyệt</option>
           <option>Đang load hàng</option>
           <option>Kho SG</option>
           <option>Kho HN</option>
@@ -1148,6 +1159,7 @@
         <div class="field"><label>Tiến độ nhập hàng mới</label>
           <select id="isUpdStatus">
             <option>Chờ duyệt</option>
+            <option>Đã duyệt</option>
             <option>Đang load hàng</option>
             <option>Kho SG</option>
             <option>Kho HN</option>
@@ -1388,7 +1400,7 @@ function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); 
 let state = loadState() || defaultState();
 if(!state.ui) state.ui = {currentProjectId: (state.projects[0]||{}).id || null, view:'dashboard'};
 if(!state.ui.view) state.ui.view = 'dashboard';
-if(!state.ui.itemFilters) state.ui.itemFilters = {search:'', system:'', status:'', delivery:'', importStatus:''};
+if(!state.ui.itemFilters) state.ui.itemFilters = {search:'', system:'', status:'', delivery:'', importStatus:'', contractType:''};
 if(!state.firebase) state.firebase = {config:null, enabled:false};
 if(!state.firebase.config){
   state.firebase.config = DEFAULT_FIREBASE_CONFIG;
@@ -1423,7 +1435,7 @@ function logActivity(action, entityType, label, extra){
   fbPut('activityLog', entry);
 }
 state.projects.forEach(p=>{ if(p.system===undefined) p.system=''; if(p.progress===undefined) p.progress='Chưa khởi công'; if(p.progressPct===undefined) p.progressPct=0; });
-state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; if(i.vat===undefined) i.vat=0; if(i.note===undefined) i.note=''; });
+state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; if(i.vat===undefined) i.vat=0; if(i.note===undefined) i.note=''; if(i.contractType===undefined) i.contractType='Hợp đồng'; if(i.contractRef===undefined) i.contractRef=''; });
 
 /* ================= PERMISSIONS ================= */
 function currentUser(){ return state.users.find(u => u.id === state.session.userId); }
@@ -1491,10 +1503,14 @@ function projStatusStampClass(status){
   const map = {'Đang triển khai':'stamp-blue','Tạm dừng':'stamp-amber','Hoàn thành':'stamp-green','Đã hủy':'stamp-red'};
   return map[status] || 'stamp-grey';
 }
-const IMPORT_STATUS_OPTIONS = ['Chờ duyệt','Đang load hàng','Kho SG','Kho HN','Ngưng nhập'];
+const IMPORT_STATUS_OPTIONS = ['Chờ duyệt','Đã duyệt','Đang load hàng','Kho SG','Kho HN','Ngưng nhập'];
 function importStatusStampClass(status){
-  const map = {'Chờ duyệt':'stamp-amber','Đang load hàng':'stamp-blue','Kho SG':'stamp-green','Kho HN':'stamp-green','Ngưng nhập':'stamp-red'};
+  const map = {'Chờ duyệt':'stamp-amber','Đã duyệt':'stamp-blue','Đang load hàng':'stamp-blue','Kho SG':'stamp-green','Kho HN':'stamp-green','Ngưng nhập':'stamp-red'};
   return map[status] || 'stamp-grey';
+}
+const CONTRACT_TYPE_OPTIONS = ['Hợp đồng','Phụ lục'];
+function contractTypeStampClass(type){
+  return type === 'Phụ lục' ? 'stamp-amber' : 'stamp-blue';
 }
 function toast(msg, isError){
   const t = document.createElement('div');
@@ -1604,7 +1620,7 @@ function renderProjectList(){
 function selectProject(id){
   state.ui.currentProjectId = id;
   state.ui.view = 'project';
-  state.ui.itemFilters = {search:'', system:'', status:'', delivery:'', importStatus:''};
+  state.ui.itemFilters = {search:'', system:'', status:'', delivery:'', importStatus:'', contractType:''};
   saveState();
   renderProjectList();
   renderMain();
@@ -1645,11 +1661,15 @@ function renderMain(){
   }
   const items = state.items.filter(i=>i.projectId===proj.id);
   const totalContractValue = sum(items, i=>i.qty*itemUnitPriceVat(i));
+  const totalContractValueNoVat = sum(items, i=>i.qty*(Number(i.price)||0));
   const totalDeliveredValue = sum(items, i=>itemDeliveredValue(i.id, itemUnitPriceVat(i)));
+  const totalDeliveredValueNoVat = sum(items, i=>itemDeliveredValue(i.id, Number(i.price)||0));
   const totalRemainingQty = sum(items, i=>itemPOTotal(i.id) - itemDeliveredQty(i.id));
   const totalPOValue = sum(items, i=>itemPOTotal(i.id) * itemUnitPriceVat(i));
+  const totalPOValueNoVat = sum(items, i=>itemPOTotal(i.id) * (Number(i.price)||0));
   const paidTotal = projectPaidTotal(proj.id);
   const remainingUnpaid = totalDeliveredValue - paidTotal;
+  const remainingUnpaidNoVat = totalDeliveredValueNoVat - paidTotal;
 
   main.innerHTML = `
     <div class="page-head">
@@ -1680,10 +1700,10 @@ function renderMain(){
     </div>
 
     <div class="stat-row">
-      <div class="stat-card"><div class="lbl">Giá trị hợp đồng</div><div class="val">${fmtMoney(totalContractValue)}</div></div>
-      <div class="stat-card"><div class="lbl">Giá trị đã giao</div><div class="val">${fmtMoney(totalDeliveredValue)}</div></div>
+      <div class="stat-card"><div class="lbl">Giá trị hợp đồng</div><div class="val">${fmtMoney(totalContractValue)}</div><div class="stat-card-sub">Chưa VAT: ${fmtMoney(totalContractValueNoVat)}</div></div>
+      <div class="stat-card"><div class="lbl">Giá trị đã giao</div><div class="val">${fmtMoney(totalDeliveredValue)}</div><div class="stat-card-sub">Chưa VAT: ${fmtMoney(totalDeliveredValueNoVat)}</div></div>
       <div class="stat-card"><div class="lbl">Tổng SL còn lại</div><div class="val">${fmtNum(totalRemainingQty)}</div></div>
-      <div class="stat-card"><div class="lbl">Giá trị PO đặt hàng</div><div class="val">${fmtMoney(totalPOValue)}</div></div>
+      <div class="stat-card"><div class="lbl">Giá trị PO đặt hàng</div><div class="val">${fmtMoney(totalPOValue)}</div><div class="stat-card-sub">Chưa VAT: ${fmtMoney(totalPOValueNoVat)}</div></div>
       <div class="stat-card stat-card-action" onclick="openPaymentModal('${proj.id}')">
         <div class="lbl">Giá trị thanh toán các đợt</div>
         <div class="val">${fmtMoney(paidTotal)}</div>
@@ -1692,6 +1712,7 @@ function renderMain(){
       <div class="stat-card ${remainingUnpaid>0?'stat-card-warn':'stat-card-ok'}">
         <div class="lbl">Giá trị còn lại chưa thanh toán</div>
         <div class="val">${fmtMoney(remainingUnpaid)}</div>
+        <div class="stat-card-sub">Chưa VAT: ${fmtMoney(remainingUnpaidNoVat)}</div>
       </div>
       <div class="stat-card stat-card-action" onclick="openNotesModal('${proj.id}')">
         <div class="lbl">📝 Ghi chú</div>
@@ -1828,7 +1849,15 @@ function renderFilterBarHtml(items){
           ${IMPORT_STATUS_OPTIONS.map(s=>`<option value="${s}" ${f.importStatus===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </div>
+      <div class="field" style="min-width:170px;">
+        <label>HĐ / Phụ lục</label>
+        <select id="fltContractType" onchange="onItemFilterChange()">
+          <option value="">Tất cả</option>
+          ${CONTRACT_TYPE_OPTIONS.map(s=>`<option value="${s}" ${f.contractType===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
       <button class="btn btn-ghost btn-sm" style="align-self:flex-end;" onclick="clearItemFilters()">Xóa lọc</button>
+      <button class="btn btn-primary btn-sm" style="align-self:flex-end;" onclick="exportFilteredItemsExcel('${state.ui.currentProjectId}')">⇩ Xuất theo bộ lọc</button>
     </div>
   `;
 }
@@ -1839,23 +1868,25 @@ function onItemFilterChange(){
     status: document.getElementById('fltStatus').value,
     delivery: document.getElementById('fltDelivery').value,
     importStatus: document.getElementById('fltImportStatus').value,
+    contractType: document.getElementById('fltContractType').value,
   };
   saveState();
   renderItemsTable();
 }
 function clearItemFilters(){
-  state.ui.itemFilters = {search:'', system:'', status:'', delivery:'', importStatus:''};
+  state.ui.itemFilters = {search:'', system:'', status:'', delivery:'', importStatus:'', contractType:''};
   saveState();
   renderMain();
 }
 function applyItemFilters(items){
-  const f = state.ui.itemFilters || {search:'', system:'', status:'', delivery:'', importStatus:''};
+  const f = state.ui.itemFilters || {search:'', system:'', status:'', delivery:'', importStatus:'', contractType:''};
   const q = (f.search||'').trim().toLowerCase();
   return items.filter(it=>{
     if(q && !((it.name+it.code).toLowerCase().includes(q))) return false;
     if(f.system && (it.system||'') !== f.system) return false;
     if(f.status && (it.status||'') !== f.status) return false;
     if(f.importStatus && (it.importStatus||'Chờ duyệt') !== f.importStatus) return false;
+    if(f.contractType && (it.contractType||'Hợp đồng') !== f.contractType) return false;
     if(f.delivery){
       const delivered = itemDeliveredQty(it.id);
       if(f.delivery === 'none' && !(delivered <= 0)) return false;
@@ -1899,6 +1930,7 @@ function renderItemsTable(){
           <th style="width:44px;">STT</th>
           <th>Sản phẩm</th>
           <th>Hệ thống</th>
+          <th>HĐ / Phụ lục</th>
           <th>Thương hiệu</th>
           <th>Xuất xứ</th>
           <th class="num">SL hợp đồng</th>
@@ -1938,6 +1970,10 @@ function rowHtml(it, stt){
         <div class="row-code">${it.code||''}</div>
       </td>
       <td><span class="stamp stamp-blue" style="transform:none;">${it.system||'—'}</span></td>
+      <td>
+        <span class="stamp ${contractTypeStampClass(it.contractType)}">${it.contractType||'Hợp đồng'}</span>
+        ${it.contractRef ? `<div style="font-size:11px; color:var(--steel-500); margin-top:3px;">${it.contractRef}</div>` : ''}
+      </td>
       <td style="font-size:12.5px;">${it.brand||'—'}</td>
       <td style="font-size:12.5px;">${it.origin||'—'}</td>
       <td class="num">${fmtNum(it.qty)} <span style="color:var(--steel-500); font-size:11px;">${it.unit||''}</span></td>
@@ -2053,11 +2089,13 @@ function openItemModal(id, projectId){
   if(!can('manageItems')){ toast('Bạn không có quyền thao tác hàng hóa.', true); return; }
   const isEdit = !!id;
   document.getElementById('itemModalTitle').textContent = isEdit ? 'Sửa hàng hóa' : 'Hàng hóa mới';
-  const it = isEdit ? state.items.find(x=>x.id===id) : {id:'',projectId:projectId||state.ui.currentProjectId,name:'',code:'',system:'',brand:'',origin:'',spec:'',qty:0,unit:'',price:0,vat:0,doc:'',status:'Chưa triển khai',importStatus:'Chờ duyệt'};
+  const it = isEdit ? state.items.find(x=>x.id===id) : {id:'',projectId:projectId||state.ui.currentProjectId,name:'',code:'',system:'',contractType:'Hợp đồng',contractRef:'',brand:'',origin:'',spec:'',qty:0,unit:'',price:0,vat:0,doc:'',status:'Chưa triển khai',importStatus:'Chờ duyệt'};
   document.getElementById('itId').value = it.id;
   document.getElementById('itId').dataset.projectId = it.projectId;
   document.getElementById('itName').value = it.name;
   document.getElementById('itSystem').value = it.system||'';
+  document.getElementById('itContractType').value = it.contractType||'Hợp đồng';
+  document.getElementById('itContractRef').value = it.contractRef||'';
   document.getElementById('itCode').value = it.code;
   document.getElementById('itSpec').value = it.spec;
   document.getElementById('itBrand').value = it.brand||'';
@@ -2092,6 +2130,8 @@ function saveItem(){
   const payload = {
     name,
     system: document.getElementById('itSystem').value.trim(),
+    contractType: document.getElementById('itContractType').value,
+    contractRef: document.getElementById('itContractRef').value.trim(),
     code: document.getElementById('itCode').value.trim(),
     spec: document.getElementById('itSpec').value.trim(),
     brand: document.getElementById('itBrand').value.trim(),
@@ -2252,13 +2292,13 @@ function removeDelivery(id){
 }
 
 /* ================= IMPORT FROM EXCEL ================= */
-const IMPORT_HEADERS = ['Tên sản phẩm','Hệ thống','Thương hiệu','Xuất xứ','Mã hàng','Thông số kỹ thuật','Số lượng','Đơn vị tính','Đơn giá','VAT (%)','Chứng từ cung cấp','Tình trạng T&C','Tiến độ nhập hàng','Ghi chú'];
+const IMPORT_HEADERS = ['Tên sản phẩm','Hệ thống','HĐ / Phụ lục','Số/Tên Phụ lục','Thương hiệu','Xuất xứ','Mã hàng','Thông số kỹ thuật','Số lượng','Đơn vị tính','Đơn giá','VAT (%)','Chứng từ cung cấp','Tình trạng T&C','Tiến độ nhập hàng','Ghi chú'];
 let importParsedRows = [];
 
 function downloadImportTemplate(){
   const ws = XLSX.utils.aoa_to_sheet([
     IMPORT_HEADERS,
-    ['Máy bơm ly tâm trục ngang','Hệ thống cơ khí','Grundfos','Đan Mạch','PUMP-CN-050','Q=50m3/h, H=32m, 3 pha, 380V','4','bộ','38500000','8','CO/CQ, Invoice INV-0021','Đang giao hàng','Chờ duyệt',''],
+    ['Máy bơm ly tâm trục ngang','Hệ thống cơ khí','Hợp đồng','','Grundfos','Đan Mạch','PUMP-CN-050','Q=50m3/h, H=32m, 3 pha, 380V','4','bộ','38500000','8','CO/CQ, Invoice INV-0021','Đang giao hàng','Chờ duyệt',''],
   ]);
   ws['!cols'] = IMPORT_HEADERS.map(()=>({wch:22}));
   const wb = XLSX.utils.book_new();
@@ -2342,6 +2382,8 @@ function confirmImport(){
       projectId,
       name: String(r['Tên sản phẩm']||'').trim(),
       system: String(r['Hệ thống']||'').trim(),
+      contractType: CONTRACT_TYPE_OPTIONS.includes(r['HĐ / Phụ lục']) ? r['HĐ / Phụ lục'] : 'Hợp đồng',
+      contractRef: String(r['Số/Tên Phụ lục']||'').trim(),
       brand: String(r['Thương hiệu']||'').trim(),
       origin: String(r['Xuất xứ']||'').trim(),
       code: String(r['Mã hàng']||'').trim(),
@@ -2372,8 +2414,18 @@ function exportItemsExcel(projectId){
   const proj = state.projects.find(p=>p.id===projectId);
   const items = state.items.filter(i=>i.projectId===projectId);
   if(items.length === 0){ toast('Dự án chưa có hàng hóa nào để xuất.', true); return; }
+  exportItemsToExcelFile(items, proj, `hang-hoa${proj ? '-'+proj.code.replace(/[^\w-]/g,'') : ''}.xlsx`, 'Đã xuất file Excel toàn bộ hàng hóa.');
+}
+function exportFilteredItemsExcel(projectId){
+  const proj = state.projects.find(p=>p.id===projectId);
+  const allItems = state.items.filter(i=>i.projectId===projectId);
+  const items = applyItemFilters(allItems);
+  if(items.length === 0){ toast('Không có hàng hóa nào khớp bộ lọc để xuất.', true); return; }
+  exportItemsToExcelFile(items, proj, `hang-hoa-loc${proj ? '-'+proj.code.replace(/[^\w-]/g,'') : ''}.xlsx`, `Đã xuất ${items.length} hàng hóa theo bộ lọc hiện tại.`);
+}
+function exportItemsToExcelFile(items, proj, fileName, successMsg){
   const aoa = [
-    ['STT','Tên sản phẩm','Hệ thống','Thương hiệu','Xuất xứ','Mã hàng','Thông số kỹ thuật',
+    ['STT','Tên sản phẩm','Hệ thống','HĐ / Phụ lục','Số/Tên Phụ lục','Thương hiệu','Xuất xứ','Mã hàng','Thông số kỹ thuật',
      'SL hợp đồng','Đơn vị tính','Đơn giá','VAT (%)','Thành tiền',
      'SL PO đặt hàng','SL đã giao','SL còn lại','Tình trạng T&C','Tiến độ nhập hàng','Chứng từ cung cấp','Ghi chú']
   ];
@@ -2383,7 +2435,7 @@ function exportItemsExcel(projectId){
     const remaining = poQty - delivered;
     const total = it.qty * itemUnitPriceVat(it);
     aoa.push([
-      idx+1, it.name, it.system||'', it.brand||'', it.origin||'', it.code||'', it.spec||'',
+      idx+1, it.name, it.system||'', it.contractType||'Hợp đồng', it.contractRef||'', it.brand||'', it.origin||'', it.code||'', it.spec||'',
       it.qty, it.unit||'', it.price, it.vat||0, total,
       poQty, delivered, remaining, it.status||'', it.importStatus||'', it.doc||'', it.note||''
     ]);
@@ -2392,9 +2444,8 @@ function exportItemsExcel(projectId){
   ws['!cols'] = aoa[0].map(()=>({wch:18}));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Hang hoa');
-  const fileName = `hang-hoa${proj ? '-'+proj.code.replace(/[^\w-]/g,'') : ''}.xlsx`;
   XLSX.writeFile(wb, fileName);
-  toast('Đã xuất file Excel toàn bộ hàng hóa.');
+  toast(successMsg);
 }
 
 /* ================= BULK DELIVERY UPDATE ================= */
@@ -3243,7 +3294,7 @@ function attachFirebaseListeners(){
     fbDb.ref('data/'+table).on('value', snap=>{
       const val = snap.val() || {};
       state[table] = Object.keys(val).map(k=>val[k]);
-      if(table==='items') state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; if(i.vat===undefined) i.vat=0; if(i.note===undefined) i.note=''; });
+      if(table==='items') state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; if(i.vat===undefined) i.vat=0; if(i.note===undefined) i.note=''; if(i.contractType===undefined) i.contractType='Hợp đồng'; if(i.contractRef===undefined) i.contractRef=''; });
       saveState();
       refreshOpenViews();
     });
