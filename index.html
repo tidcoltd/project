@@ -2181,8 +2181,10 @@ function deleteItem(id){
 
 /* ================= DETAIL MODAL: PO + DELIVERIES ================= */
 let detailItemId = null;
+let editingPOId = null;
 function openDetailModal(itemId){
   detailItemId = itemId;
+  editingPOId = null;
   renderDetailModal();
   openModal('detailModal');
 }
@@ -2207,14 +2209,29 @@ function renderDetailModal(){
 
   const pos = state.poBatches.filter(p=>p.itemId===it.id);
   document.getElementById('poCountBadge').innerHTML = pos.length ? `<span class="badge-count">${pos.length}</span>` : '';
-  document.getElementById('poTableBody').innerHTML = pos.length ? pos.map(p=>`
+  document.getElementById('poTableBody').innerHTML = pos.length ? pos.map(p=>{
+    if(p.id === editingPOId){
+      return `
+    <tr>
+      <td><input id="poEditCode_${p.id}" value="${(p.poCode||'').replace(/"/g,'&quot;')}" style="width:110px;"></td>
+      <td><input type="date" id="poEditDate_${p.id}" value="${p.date||''}" style="width:130px;"></td>
+      <td class="num"><input type="number" min="0" step="any" id="poEditQty_${p.id}" value="${p.qty}" style="width:90px; text-align:right;"></td>
+      <td>
+        <button class="icon-link" onclick="saveEditPO('${p.id}')">Lưu</button>
+        <button class="icon-link" onclick="cancelEditPO()">Hủy</button>
+      </td>
+    </tr>`;
+    }
+    return `
     <tr>
       <td>${p.poCode||'—'}</td>
       <td>${p.date||'—'}</td>
       <td class="num">${fmtNum(p.qty)}</td>
-      <td>${can('managePO') ? `<button class="icon-link" onclick="removePO('${p.id}')">Xóa</button>` : ''}</td>
-    </tr>
-  `).join('') : `<tr><td colspan="4" style="color:var(--steel-500); font-size:12px;">Chưa có PO nào được ghi nhận.</td></tr>`;
+      <td>
+        ${can('managePO') ? `<button class="icon-link" onclick="startEditPO('${p.id}')">Sửa</button><button class="icon-link" onclick="removePO('${p.id}')">Xóa</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="4" style="color:var(--steel-500); font-size:12px;">Chưa có PO nào được ghi nhận.</td></tr>`;
   document.getElementById('poFormWrap').style.display = can('managePO') ? 'flex' : 'none';
 
   const dvs = state.deliveries.filter(d=>d.itemId===it.id);
@@ -2247,6 +2264,34 @@ function addPO(){
   renderDetailModal();
   renderMain();
   toast('Đã thêm PO.');
+}
+function startEditPO(id){
+  if(!can('managePO')){ toast('Bạn không có quyền sửa PO.', true); return; }
+  editingPOId = id;
+  renderDetailModal();
+}
+function cancelEditPO(){
+  editingPOId = null;
+  renderDetailModal();
+}
+function saveEditPO(id){
+  if(!can('managePO')){ toast('Bạn không có quyền sửa PO.', true); return; }
+  const po = state.poBatches.find(p=>p.id===id);
+  if(!po) return;
+  const poCode = document.getElementById(`poEditCode_${id}`).value.trim();
+  const date = document.getElementById(`poEditDate_${id}`).value;
+  const qty = Number(document.getElementById(`poEditQty_${id}`).value) || 0;
+  if(!poCode || qty<=0){ toast('Vui lòng nhập số PO và số lượng hợp lệ.', true); return; }
+  Object.assign(po, {poCode, date, qty});
+  touch(po);
+  fbPut('poBatches', po);
+  const poItem = state.items.find(i=>i.id===po.itemId);
+  logActivity('edit', 'po', poItem ? poItem.name : po.itemId, `Số PO: ${poCode}, SL: ${qty}`);
+  saveState();
+  editingPOId = null;
+  renderDetailModal();
+  renderMain();
+  toast('Đã cập nhật PO.');
 }
 function removePO(id){
   if(!can('managePO')) return;
@@ -2807,10 +2852,10 @@ function exportDeliveryExcel(){
   if(rows.length === 0){ toast('Không có dữ liệu đợt giao hàng để xuất.', true); return; }
   const proj = state.projects.find(p=>p.id===deliveryListProjectId);
   const aoa = [
-    ['STT','Sản phẩm','Mã hàng','Hệ thống','Đợt giao','Ngày giao','SL giao','Đơn vị','Đơn giá','VAT (%)','Giá trị giao (VNĐ)','Ghi chú']
+    ['STT','Sản phẩm','Mã hàng','Thông số kỹ thuật','Thương hiệu','Xuất xứ','Hệ thống','Đợt giao','Ngày giao','SL giao','Đơn vị','Đơn giá','VAT (%)','Giá trị giao (VNĐ)','Ghi chú']
   ];
   rows.forEach(({d,it}, idx)=>{
-    aoa.push([idx+1, it.name, it.code||'', it.system||'', d.batchNo||'', d.date||'', d.qty, it.unit||'', it.price, it.vat||0, d.qty*itemUnitPriceVat(it), d.note||'']);
+    aoa.push([idx+1, it.name, it.code||'', it.spec||'', it.brand||'', it.origin||'', it.system||'', d.batchNo||'', d.date||'', d.qty, it.unit||'', it.price, it.vat||0, d.qty*itemUnitPriceVat(it), d.note||'']);
   });
   const ws = XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols'] = aoa[0].map(()=>({wch:18}));
