@@ -848,6 +848,7 @@
           <select id="itContractType">
             <option>Hợp đồng</option>
             <option>Phụ lục</option>
+            <option>Vật tư phụ</option>
           </select>
         </div>
         <div class="field"><label>Số/Tên Phụ lục (nếu có)</label><input id="itContractRef" placeholder="VD: Phụ lục số 02 - bổ sung thiết bị"></div>
@@ -1508,9 +1509,11 @@ function importStatusStampClass(status){
   const map = {'Chờ duyệt':'stamp-amber','Đã duyệt':'stamp-blue','Đang load hàng':'stamp-blue','Kho SG':'stamp-green','Kho HN':'stamp-green','Ngưng nhập':'stamp-red'};
   return map[status] || 'stamp-grey';
 }
-const CONTRACT_TYPE_OPTIONS = ['Hợp đồng','Phụ lục'];
+const CONTRACT_TYPE_OPTIONS = ['Hợp đồng','Phụ lục','Vật tư phụ'];
 function contractTypeStampClass(type){
-  return type === 'Phụ lục' ? 'stamp-amber' : 'stamp-blue';
+  if(type === 'Phụ lục') return 'stamp-amber';
+  if(type === 'Vật tư phụ') return 'stamp-grey';
+  return 'stamp-blue';
 }
 function toast(msg, isError){
   const t = document.createElement('div');
