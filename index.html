@@ -624,7 +624,7 @@
         <input type="password" id="loginPass" placeholder="Nhập mật khẩu">
       </div>
       <button class="btn btn-primary btn-block" onclick="handleLogin()">Đăng nhập</button>
-      <div class="login-hint">Tài khoản: Vui lòng chọn tài khoản và nhập mật khẩu đã cung cấp để truy cập phần mềm.</div>
+      <div class="login-hint">Tài khoản.</div>
       <div style="text-align:center; margin-top:16px;"><a href="#" onclick="backToModuleHub(); return false;" style="font-size:12px; color:var(--steel-500); text-decoration:none;">← Chọn phần mềm khác</a></div>
     </div>
   </div>
@@ -969,6 +969,7 @@
         </div>
         <button class="btn btn-ghost btn-sm" style="align-self:flex-end;" onclick="clearDeliveryListFilters()">Xóa lọc</button>
         <button class="btn btn-primary btn-sm" style="align-self:flex-end;" onclick="exportDeliveryExcel()">⇩ Xuất Excel</button>
+        <button class="btn btn-ghost btn-sm" style="align-self:flex-end;" onclick="exportDeliveryPivotExcel()">📊 Xuất thống kê theo đợt</button>
       </div>
       <div class="stat-row" id="dlStats"></div>
       <div id="dlTableWrap"></div>
@@ -2867,6 +2868,55 @@ function exportDeliveryExcel(){
   const fileName = `dot-giao-hang${proj ? '-'+proj.code.replace(/[^\w-]/g,'') : ''}.xlsx`;
   XLSX.writeFile(wb, fileName);
   toast('Đã xuất file Excel đợt giao hàng.');
+}
+function exportDeliveryPivotExcel(){
+  const proj = state.projects.find(p=>p.id===deliveryListProjectId);
+  const items = state.items.filter(i=>i.projectId===deliveryListProjectId);
+  if(items.length === 0){ toast('Dự án chưa có hàng hóa nào để xuất.', true); return; }
+
+  const itemIds = items.map(i=>i.id);
+  const relevantDeliveries = state.deliveries.filter(d=>itemIds.includes(d.itemId));
+  if(relevantDeliveries.length === 0){ toast('Dự án chưa có đợt giao hàng nào để thống kê.', true); return; }
+
+  const earliestDate = {};
+  relevantDeliveries.forEach(d=>{
+    const name = d.batchNo || 'Đợt giao';
+    if(!(name in earliestDate) || (d.date && (!earliestDate[name] || d.date < earliestDate[name]))){
+      earliestDate[name] = d.date || earliestDate[name] || '';
+    }
+  });
+  const batchNames = Object.keys(earliestDate).sort((a,b)=>{
+    const da = earliestDate[a] || '9999-99-99';
+    const db = earliestDate[b] || '9999-99-99';
+    if(da !== db) return da.localeCompare(db);
+    return a.localeCompare(b, 'vi');
+  });
+
+  const header = ['STT','Sản phẩm','Mã hàng','Hệ thống','SL PO đặt hàng', ...batchNames, 'SL còn lại chưa giao'];
+  const aoa = [header];
+  items.forEach((it, idx)=>{
+    const poQty = itemPOTotal(it.id);
+    const itemDeliveries = state.deliveries.filter(d=>d.itemId===it.id);
+    const byBatch = {};
+    itemDeliveries.forEach(d=>{
+      const name = d.batchNo || 'Đợt giao';
+      byBatch[name] = (byBatch[name]||0) + (Number(d.qty)||0);
+    });
+    const totalDelivered = itemDeliveries.reduce((s,d)=>s+(Number(d.qty)||0), 0);
+    const remaining = poQty - totalDelivered;
+    const row = [idx+1, it.name, it.code||'', it.system||'', poQty];
+    batchNames.forEach(bn => row.push(byBatch[bn] || 0));
+    row.push(remaining);
+    aoa.push(row);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = header.map(()=>({wch:16}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Thong ke theo dot');
+  const fileName = `thong-ke-giao-hang-theo-dot${proj ? '-'+proj.code.replace(/[^\w-]/g,'') : ''}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+  toast('Đã xuất file thống kê hàng hóa theo từng đợt giao hàng.');
 }
 
 /* ================= PAYMENT MANAGEMENT (per project) ================= */
