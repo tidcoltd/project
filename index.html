@@ -582,7 +582,7 @@
     <div class="hub-card" onclick="enterModule(1)">
       <div class="hub-num">MODULE 01</div>
       <h3>Theo dõi quản lý hàng hóa &amp; dự án</h3>
-      <div class="hub-desc">Quản lý danh sách dự án, hàng hóa, PO đặt hàng, đợt giao hàng, thanh toán.</div>
+      <div class="hub-desc">Quản lý danh sách dự án, hàng hóa, PO đặt hàng, đợt giao hàng.</div>
       <div class="hub-foot"><span class="stamp stamp-green">Đang sử dụng</span></div>
     </div>
     <div class="hub-card disabled" onclick="enterModule(2)">
@@ -1402,7 +1402,7 @@ function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); 
 let state = loadState() || defaultState();
 if(!state.ui) state.ui = {currentProjectId: (state.projects[0]||{}).id || null, view:'dashboard'};
 if(!state.ui.view) state.ui.view = 'dashboard';
-if(!state.ui.itemFilters) state.ui.itemFilters = {search:'', system:'', status:'', delivery:'', importStatus:'', contractType:''};
+if(!state.ui.itemFilters) state.ui.itemFilters = {search:'', system:'', brand:'', origin:'', status:'', delivery:'', importStatus:'', contractType:''};
 if(!state.firebase) state.firebase = {config:null, enabled:false};
 if(!state.firebase.config){
   state.firebase.config = DEFAULT_FIREBASE_CONFIG;
@@ -1624,7 +1624,7 @@ function renderProjectList(){
 function selectProject(id){
   state.ui.currentProjectId = id;
   state.ui.view = 'project';
-  state.ui.itemFilters = {search:'', system:'', status:'', delivery:'', importStatus:'', contractType:''};
+  state.ui.itemFilters = {search:'', system:'', brand:'', origin:'', status:'', delivery:'', importStatus:'', contractType:''};
   saveState();
   renderProjectList();
   renderMain();
@@ -1811,11 +1811,19 @@ function renderDashboardView(main){
 function distinctItemSystems(items){
   return [...new Set(items.map(i=>(i.system||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'vi'));
 }
+function distinctItemBrands(items){
+  return [...new Set(items.map(i=>(i.brand||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'vi'));
+}
+function distinctItemOrigins(items){
+  return [...new Set(items.map(i=>(i.origin||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'vi'));
+}
 const ITEM_STATUS_OPTIONS = ['Chưa triển khai','Đang đặt hàng','Đang giao hàng','Đã giao đủ','Trễ tiến độ','Tạm ngưng'];
 
 function renderFilterBarHtml(items){
   const f = state.ui.itemFilters || {search:'', system:'', status:''};
   const systems = distinctItemSystems(items);
+  const brands = distinctItemBrands(items);
+  const origins = distinctItemOrigins(items);
   return `
     <div class="filter-bar">
       <div class="field" style="min-width:220px;">
@@ -1827,6 +1835,20 @@ function renderFilterBarHtml(items){
         <select id="fltSystem" onchange="onItemFilterChange()">
           <option value="">Tất cả hệ thống</option>
           ${systems.map(s=>`<option value="${s}" ${f.system===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field" style="min-width:170px;">
+        <label>Thương hiệu</label>
+        <select id="fltBrand" onchange="onItemFilterChange()">
+          <option value="">Tất cả thương hiệu</option>
+          ${brands.map(s=>`<option value="${s}" ${f.brand===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field" style="min-width:170px;">
+        <label>Xuất xứ</label>
+        <select id="fltOrigin" onchange="onItemFilterChange()">
+          <option value="">Tất cả xuất xứ</option>
+          ${origins.map(s=>`<option value="${s}" ${f.origin===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </div>
       <div class="field" style="min-width:180px;">
@@ -1869,6 +1891,8 @@ function onItemFilterChange(){
   state.ui.itemFilters = {
     search: document.getElementById('fltSearch').value,
     system: document.getElementById('fltSystem').value,
+    brand: document.getElementById('fltBrand').value,
+    origin: document.getElementById('fltOrigin').value,
     status: document.getElementById('fltStatus').value,
     delivery: document.getElementById('fltDelivery').value,
     importStatus: document.getElementById('fltImportStatus').value,
@@ -1878,16 +1902,18 @@ function onItemFilterChange(){
   renderItemsTable();
 }
 function clearItemFilters(){
-  state.ui.itemFilters = {search:'', system:'', status:'', delivery:'', importStatus:'', contractType:''};
+  state.ui.itemFilters = {search:'', system:'', brand:'', origin:'', status:'', delivery:'', importStatus:'', contractType:''};
   saveState();
   renderMain();
 }
 function applyItemFilters(items){
-  const f = state.ui.itemFilters || {search:'', system:'', status:'', delivery:'', importStatus:'', contractType:''};
+  const f = state.ui.itemFilters || {search:'', system:'', brand:'', origin:'', status:'', delivery:'', importStatus:'', contractType:''};
   const q = (f.search||'').trim().toLowerCase();
   return items.filter(it=>{
     if(q && !((it.name+it.code).toLowerCase().includes(q))) return false;
     if(f.system && (it.system||'') !== f.system) return false;
+    if(f.brand && (it.brand||'') !== f.brand) return false;
+    if(f.origin && (it.origin||'') !== f.origin) return false;
     if(f.status && (it.status||'') !== f.status) return false;
     if(f.importStatus && (it.importStatus||'Chờ duyệt') !== f.importStatus) return false;
     if(f.contractType && (it.contractType||'Hợp đồng') !== f.contractType) return false;
@@ -2341,13 +2367,13 @@ function removeDelivery(id){
 }
 
 /* ================= IMPORT FROM EXCEL ================= */
-const IMPORT_HEADERS = ['Tên sản phẩm','Hệ thống','HĐ / Phụ lục','Số/Tên Phụ lục','Thương hiệu','Xuất xứ','Mã hàng','Thông số kỹ thuật','Số lượng','Đơn vị tính','Đơn giá','VAT (%)','Chứng từ cung cấp','Tình trạng T&C','Tiến độ nhập hàng','Ghi chú'];
+const IMPORT_HEADERS = ['Tên sản phẩm','Hệ thống','HĐ / Phụ lục','Số/Tên Phụ lục','Thương hiệu','Xuất xứ','Mã hàng','Thông số kỹ thuật','Số lượng','SL PO đặt hàng','Đơn vị tính','Đơn giá','VAT (%)','Chứng từ cung cấp','Tình trạng T&C','Tiến độ nhập hàng','Ghi chú'];
 let importParsedRows = [];
 
 function downloadImportTemplate(){
   const ws = XLSX.utils.aoa_to_sheet([
     IMPORT_HEADERS,
-    ['Máy bơm ly tâm trục ngang','Hệ thống cơ khí','Hợp đồng','','Grundfos','Đan Mạch','PUMP-CN-050','Q=50m3/h, H=32m, 3 pha, 380V','4','bộ','38500000','8','CO/CQ, Invoice INV-0021','Đang giao hàng','Chờ duyệt',''],
+    ['Máy bơm ly tâm trục ngang','Hệ thống cơ khí','Hợp đồng','','Grundfos','Đan Mạch','PUMP-CN-050','Q=50m3/h, H=32m, 3 pha, 380V','4','4','bộ','38500000','8','CO/CQ, Invoice INV-0021','Đang giao hàng','Chờ duyệt',''],
   ]);
   ws['!cols'] = IMPORT_HEADERS.map(()=>({wch:22}));
   const wb = XLSX.utils.book_new();
@@ -2363,7 +2389,8 @@ function openImportModal(projectId){
   document.getElementById('importConfirmBtn').disabled = true;
   importParsedRows = [];
   document.getElementById('importFieldNote').textContent = can('editFinance')
-    ? '' : 'Bạn không có quyền chỉnh sửa Đơn giá / Chứng từ cung cấp — các cột này sẽ được bỏ qua khi nhập, có thể cập nhật sau bởi Admin/Kế toán.';
+    ? (can('managePO') ? '' : 'Bạn không có quyền tạo PO đặt hàng — cột "SL PO đặt hàng" sẽ được bỏ qua khi nhập, có thể thêm PO sau.')
+    : 'Bạn không có quyền chỉnh sửa Đơn giá / Chứng từ cung cấp — các cột này sẽ được bỏ qua khi nhập, có thể cập nhật sau bởi Admin/Kế toán.' + (can('managePO') ? '' : ' Cột "SL PO đặt hàng" cũng sẽ được bỏ qua do bạn không có quyền tạo PO.');
   openModal('importModal');
 }
 
@@ -2410,9 +2437,9 @@ function renderImportPreview(){
   document.getElementById('importSummary').textContent = `Tìm thấy ${importParsedRows.length} dòng hàng hóa hợp lệ. Kiểm tra nhanh 5 dòng đầu bên dưới trước khi nhập.`;
   const preview = importParsedRows.slice(0,5);
   document.getElementById('importPreviewTable').innerHTML = `
-    <thead><tr><th>Tên sản phẩm</th><th>Hệ thống</th><th>Thương hiệu</th><th>Xuất xứ</th><th>Mã hàng</th><th class="num">Số lượng</th><th class="num">Đơn giá</th><th class="num">VAT (%)</th></tr></thead>
+    <thead><tr><th>Tên sản phẩm</th><th>Hệ thống</th><th>Thương hiệu</th><th>Xuất xứ</th><th>Mã hàng</th><th class="num">Số lượng</th><th class="num">SL PO</th><th class="num">Đơn giá</th><th class="num">VAT (%)</th></tr></thead>
     <tbody>
-      ${preview.map(r=>`<tr><td>${r['Tên sản phẩm']||''}</td><td>${r['Hệ thống']||''}</td><td>${r['Thương hiệu']||''}</td><td>${r['Xuất xứ']||''}</td><td>${r['Mã hàng']||''}</td><td class="num">${fmtNum(r['Số lượng'])}</td><td class="num">${fmtMoney(r['Đơn giá'])}</td><td class="num">${fmtNum(r['VAT (%)'])}</td></tr>`).join('')}
+      ${preview.map(r=>`<tr><td>${r['Tên sản phẩm']||''}</td><td>${r['Hệ thống']||''}</td><td>${r['Thương hiệu']||''}</td><td>${r['Xuất xứ']||''}</td><td>${r['Mã hàng']||''}</td><td class="num">${fmtNum(r['Số lượng'])}</td><td class="num">${fmtNum(r['SL PO đặt hàng'])}</td><td class="num">${fmtMoney(r['Đơn giá'])}</td><td class="num">${fmtNum(r['VAT (%)'])}</td></tr>`).join('')}
     </tbody>
   `;
   btn.disabled = false;
@@ -2422,7 +2449,9 @@ function confirmImport(){
   const projectId = document.getElementById('importProjectId').value;
   if(!projectId || importParsedRows.length === 0) return;
   const financeAllowed = can('editFinance');
+  const poAllowed = can('managePO');
   const newItems = [];
+  const newPOs = [];
   importParsedRows.forEach(r=>{
     const status = ITEM_STATUS_OPTIONS.includes(r['Tình trạng T&C']) ? r['Tình trạng T&C'] : 'Chưa triển khai';
     const importStatus = IMPORT_STATUS_OPTIONS.includes(r['Tiến độ nhập hàng']) ? r['Tiến độ nhập hàng'] : 'Chờ duyệt';
@@ -2448,11 +2477,18 @@ function confirmImport(){
     });
     state.items.push(newItem);
     newItems.push(newItem);
+    const poQty = Number(r['SL PO đặt hàng'])||0;
+    if(poAllowed && poQty > 0){
+      const newPO = touch({id:uid('po'), itemId:newItem.id, poCode:'PO nhập từ Excel', date:'', qty:poQty});
+      state.poBatches.push(newPO);
+      newPOs.push(newPO);
+    }
   });
   fbBulkPut('items', newItems);
+  if(newPOs.length) fbBulkPut('poBatches', newPOs);
   saveState();
   const importProj = state.projects.find(p=>p.id===projectId);
-  logActivity('add', 'import', importProj ? importProj.name : projectId, `Nhập ${importParsedRows.length} hàng hóa từ Excel`);
+  logActivity('add', 'import', importProj ? importProj.name : projectId, `Nhập ${importParsedRows.length} hàng hóa từ Excel${newPOs.length ? ` (kèm ${newPOs.length} PO)` : ''}`);
   closeModal('importModal');
   renderMain();
   toast(`Đã nhập ${importParsedRows.length} hàng hóa từ Excel.`);
