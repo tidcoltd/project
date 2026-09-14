@@ -1078,6 +1078,15 @@
         <div class="field"><label>Ngày giao</label><input type="date" id="dvUpdDate"></div>
         <div class="field"><label>Ghi chú chung</label><input id="dvUpdNote" placeholder="Số vận đơn / ghi chú"></div>
       </div>
+      <div class="subhead">Hoặc tải lên từ Excel để chọn nhanh nhiều hàng hóa</div>
+      <div class="inline-form" style="margin-bottom:14px;">
+        <div class="field" style="flex:1 1 auto;">
+          <label>File Excel (Mã hàng, Số lượng giao — có thể kèm Hệ thống, Tên đợt giao, Ngày giao, Ghi chú riêng từng dòng)</label>
+          <input type="file" id="dvUpdFileInput" accept=".xlsx,.xls,.csv" onchange="handleDeliveryUpdateFile(event)">
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="downloadDeliveryUpdateTemplate()">⇩ Tải file mẫu</button>
+      </div>
+      <div class="permission-note" id="dvUpdUploadSummary" style="display:none;"></div>
       <div class="subhead">Lọc hàng hóa để chọn nhanh</div>
       <div class="filter-bar" style="margin-bottom:12px;">
         <div class="field" style="min-width:200px;">
@@ -2536,6 +2545,7 @@ function exportItemsToExcelFile(items, proj, fileName, successMsg){
 /* ================= BULK DELIVERY UPDATE ================= */
 let deliveryUpdateProjectId = null;
 let deliveryUpdateSelections = {};
+let deliveryUpdateOverrides = {};
 
 function captureDeliveryUpdateSelections(){
   document.querySelectorAll('#dvUpdTableBody tr').forEach(tr=>{
@@ -2552,11 +2562,14 @@ function openDeliveryUpdateModal(projectId){
   if(items.length === 0){ toast('Dự án chưa có hàng hóa nào để cập nhật giao hàng.', true); return; }
   deliveryUpdateProjectId = projectId;
   deliveryUpdateSelections = {};
+  deliveryUpdateOverrides = {};
   document.getElementById('dvUpdProjectId').value = projectId;
   document.getElementById('dvUpdBatch').value = '';
   document.getElementById('dvUpdDate').value = '';
   document.getElementById('dvUpdNote').value = '';
   document.getElementById('dvUpdFltSearch').value = '';
+  document.getElementById('dvUpdFileInput').value = '';
+  document.getElementById('dvUpdUploadSummary').style.display = 'none';
   const systems = distinctItemSystems(items);
   document.getElementById('dvUpdFltSystem').innerHTML = `<option value="">Tất cả hệ thống</option>` +
     systems.map(s=>`<option value="${s}">${s}</option>`).join('');
@@ -2570,6 +2583,9 @@ function clearDeliveryUpdateFilters(){
 }
 function renderDeliveryUpdateTable(){
   captureDeliveryUpdateSelections();
+  renderDeliveryUpdateTableBody();
+}
+function renderDeliveryUpdateTableBody(){
   const items = state.items.filter(i=>i.projectId===deliveryUpdateProjectId);
   const q = (document.getElementById('dvUpdFltSearch').value||'').trim().toLowerCase();
   const sys = document.getElementById('dvUpdFltSystem').value;
@@ -2602,17 +2618,88 @@ function renderDeliveryUpdateTable(){
     `;
   }).join('');
 }
+function downloadDeliveryUpdateTemplate(){
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['Mã hàng','Hệ thống','Tên đợt giao','Ngày giao','Số lượng giao','Ghi chú chung'],
+    ['PUMP-CN-050','Hệ thống cơ khí','Đợt 1','2026-08-01','2','Giao kho công trình'],
+  ]);
+  ws['!cols'] = [{wch:22},{wch:20},{wch:16},{wch:14},{wch:14},{wch:24}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Cap nhat giao hang');
+  XLSX.writeFile(wb, 'mau-cap-nhat-giao-hang.xlsx');
+}
+function handleDeliveryUpdateFile(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+      const items = state.items.filter(i=>i.projectId===deliveryUpdateProjectId);
+      const byCode = {};
+      items.forEach(it=>{ if(it.code) byCode[it.code.trim().toLowerCase()] = it; });
+
+      captureDeliveryUpdateSelections();
+      let matched = 0, unmatched = 0, invalidQty = 0, systemMismatch = 0;
+      let firstBatch = '', firstDate = '', firstNote = '';
+      rows.forEach(r=>{
+        const codeRaw = String(r['Mã hàng']||'').trim();
+        if(!codeRaw) return;
+        const qty = Number(r['Số lượng giao']);
+        const it = byCode[codeRaw.toLowerCase()];
+        if(!it){ unmatched++; return; }
+        if(!qty || qty <= 0){ invalidQty++; return; }
+        deliveryUpdateSelections[it.id] = { checked: true, qty: String(qty) };
+        const rowSystem = String(r['Hệ thống']||'').trim();
+        if(rowSystem && it.system && rowSystem.toLowerCase() !== it.system.trim().toLowerCase()) systemMismatch++;
+        const rowBatch = String(r['Tên đợt giao']||'').trim();
+        const rowDate = String(r['Ngày giao']||'').trim();
+        const rowNote = String(r['Ghi chú chung']||'').trim();
+        if(rowBatch || rowDate || rowNote){
+          deliveryUpdateOverrides[it.id] = { batchNo: rowBatch, date: rowDate, note: rowNote };
+        } else {
+          delete deliveryUpdateOverrides[it.id];
+        }
+        if(!firstBatch && rowBatch) firstBatch = rowBatch;
+        if(!firstDate && rowDate) firstDate = rowDate;
+        if(!firstNote && rowNote) firstNote = rowNote;
+        matched++;
+      });
+      if(firstBatch && !document.getElementById('dvUpdBatch').value) document.getElementById('dvUpdBatch').value = firstBatch;
+      if(firstDate && !document.getElementById('dvUpdDate').value) document.getElementById('dvUpdDate').value = firstDate;
+      if(firstNote && !document.getElementById('dvUpdNote').value) document.getElementById('dvUpdNote').value = firstNote;
+      renderDeliveryUpdateTableBody();
+      const summary = document.getElementById('dvUpdUploadSummary');
+      summary.style.display = 'block';
+      summary.textContent = `Đã khớp ${matched} mã hàng từ file.` +
+        (unmatched ? ` ${unmatched} mã hàng không tìm thấy trong dự án.` : '') +
+        (invalidQty ? ` ${invalidQty} dòng có số lượng không hợp lệ (bỏ qua).` : '') +
+        (systemMismatch ? ` ${systemMismatch} dòng có Hệ thống ghi trong file không khớp với hệ thống thực tế của mã hàng — vẫn được cập nhật, nên kiểm tra lại.` : '');
+      toast(`Đã áp dụng ${matched} dòng từ file Excel.`);
+    }catch(err){
+      toast('Không đọc được file. Vui lòng dùng đúng file mẫu.', true);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  evt.target.value = '';
+}
 function submitDeliveryUpdate(){
   captureDeliveryUpdateSelections();
-  const batchNo = document.getElementById('dvUpdBatch').value.trim() || 'Đợt giao hàng';
-  const date = document.getElementById('dvUpdDate').value;
-  const note = document.getElementById('dvUpdNote').value.trim();
+  const sharedBatchNo = document.getElementById('dvUpdBatch').value.trim() || 'Đợt giao hàng';
+  const sharedDate = document.getElementById('dvUpdDate').value;
+  const sharedNote = document.getElementById('dvUpdNote').value.trim();
   let count = 0;
   const newDeliveries = [];
   Object.keys(deliveryUpdateSelections).forEach(itemId=>{
     const sel = deliveryUpdateSelections[itemId];
     const qty = Number(sel.qty) || 0;
     if(sel.checked && qty > 0){
+      const ov = deliveryUpdateOverrides[itemId] || {};
+      const batchNo = ov.batchNo || sharedBatchNo;
+      const date = ov.date || sharedDate;
+      const note = ov.note || sharedNote;
       const newDv = touch({id:uid('dv'), itemId, batchNo, date, qty, note});
       state.deliveries.push(newDv);
       newDeliveries.push(newDv);
@@ -2622,7 +2709,7 @@ function submitDeliveryUpdate(){
   if(count === 0){ toast('Vui lòng chọn ít nhất 1 hàng hóa và nhập số lượng giao > 0.', true); return; }
   fbBulkPut('deliveries', newDeliveries);
   saveState();
-  logActivity('add', 'bulk_delivery', batchNo, `Cập nhật giao hàng cho ${count} hàng hóa`);
+  logActivity('add', 'bulk_delivery', sharedBatchNo, `Cập nhật giao hàng cho ${count} hàng hóa`);
   closeModal('deliveryUpdateModal');
   renderMain();
   toast(`Đã cập nhật giao hàng cho ${count} hàng hóa.`);
