@@ -582,7 +582,7 @@
     <div class="hub-card" onclick="enterModule(1)">
       <div class="hub-num">MODULE 01</div>
       <h3>Theo dõi quản lý hàng hóa &amp; dự án</h3>
-      <div class="hub-desc">Quản lý danh sách dự án, hàng hóa, PO đặt hàng, đợt giao hàng.</div>
+      <div class="hub-desc">Quản lý danh sách dự án, hàng hóa, PO đặt hàng, đợt giao hàng, thanh toán và phân quyền người dùng.</div>
       <div class="hub-foot"><span class="stamp stamp-green">Đang sử dụng</span></div>
     </div>
     <div class="hub-card disabled" onclick="enterModule(2)">
@@ -624,7 +624,7 @@
         <input type="password" id="loginPass" placeholder="Nhập mật khẩu">
       </div>
       <button class="btn btn-primary btn-block" onclick="handleLogin()">Đăng nhập</button>
-      <div class="login-hint">Tài khoản.</div>
+      <div class="login-hint">Tài khoản .</div>
       <div style="text-align:center; margin-top:16px;"><a href="#" onclick="backToModuleHub(); return false;" style="font-size:12px; color:var(--steel-500); text-decoration:none;">← Chọn phần mềm khác</a></div>
     </div>
   </div>
@@ -1411,7 +1411,7 @@ function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); 
 let state = loadState() || defaultState();
 if(!state.ui) state.ui = {currentProjectId: (state.projects[0]||{}).id || null, view:'dashboard'};
 if(!state.ui.view) state.ui.view = 'dashboard';
-if(!state.ui.itemFilters) state.ui.itemFilters = {search:'', system:'', brand:'', origin:'', status:'', delivery:'', importStatus:'', contractType:''};
+if(!state.ui.itemFilters) state.ui.itemFilters = {search:'', system:'', brand:'', origin:'', status:'', delivery:'', importStatus:'', contractType:'', deliveryBatch:''};
 if(!state.firebase) state.firebase = {config:null, enabled:false};
 if(!state.firebase.config){
   state.firebase.config = DEFAULT_FIREBASE_CONFIG;
@@ -1633,7 +1633,7 @@ function renderProjectList(){
 function selectProject(id){
   state.ui.currentProjectId = id;
   state.ui.view = 'project';
-  state.ui.itemFilters = {search:'', system:'', brand:'', origin:'', status:'', delivery:'', importStatus:'', contractType:''};
+  state.ui.itemFilters = {search:'', system:'', brand:'', origin:'', status:'', delivery:'', importStatus:'', contractType:'', deliveryBatch:''};
   saveState();
   renderProjectList();
   renderMain();
@@ -1826,6 +1826,10 @@ function distinctItemBrands(items){
 function distinctItemOrigins(items){
   return [...new Set(items.map(i=>(i.origin||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'vi'));
 }
+function distinctDeliveryBatchNames(items){
+  const ids = new Set(items.map(i=>i.id));
+  return [...new Set(state.deliveries.filter(d=>ids.has(d.itemId)).map(d=>(d.batchNo||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'vi'));
+}
 const ITEM_STATUS_OPTIONS = ['Chưa triển khai','Đang đặt hàng','Đang giao hàng','Đã giao đủ','Trễ tiến độ','Tạm ngưng'];
 
 function renderFilterBarHtml(items){
@@ -1833,6 +1837,7 @@ function renderFilterBarHtml(items){
   const systems = distinctItemSystems(items);
   const brands = distinctItemBrands(items);
   const origins = distinctItemOrigins(items);
+  const deliveryBatches = distinctDeliveryBatchNames(items);
   return `
     <div class="filter-bar">
       <div class="field" style="min-width:220px;">
@@ -1891,6 +1896,13 @@ function renderFilterBarHtml(items){
           ${CONTRACT_TYPE_OPTIONS.map(s=>`<option value="${s}" ${f.contractType===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </div>
+      <div class="field" style="min-width:180px;">
+        <label>Đợt giao hàng</label>
+        <select id="fltDeliveryBatch" onchange="onItemFilterChange()">
+          <option value="">Tất cả đợt giao</option>
+          ${deliveryBatches.map(s=>`<option value="${s}" ${f.deliveryBatch===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
       <button class="btn btn-ghost btn-sm" style="align-self:flex-end;" onclick="clearItemFilters()">Xóa lọc</button>
       <button class="btn btn-primary btn-sm" style="align-self:flex-end;" onclick="exportFilteredItemsExcel('${state.ui.currentProjectId}')">⇩ Xuất theo bộ lọc</button>
     </div>
@@ -1906,12 +1918,13 @@ function onItemFilterChange(){
     delivery: document.getElementById('fltDelivery').value,
     importStatus: document.getElementById('fltImportStatus').value,
     contractType: document.getElementById('fltContractType').value,
+    deliveryBatch: document.getElementById('fltDeliveryBatch').value,
   };
   saveState();
   renderItemsTable();
 }
 function clearItemFilters(){
-  state.ui.itemFilters = {search:'', system:'', brand:'', origin:'', status:'', delivery:'', importStatus:'', contractType:''};
+  state.ui.itemFilters = {search:'', system:'', brand:'', origin:'', status:'', delivery:'', importStatus:'', contractType:'', deliveryBatch:''};
   saveState();
   renderMain();
 }
@@ -1933,6 +1946,7 @@ function applyItemFilters(items){
       if(f.delivery === 'full' && !(delivered > 0 && delivered === it.qty)) return false;
       if(f.delivery === 'over' && !(delivered > it.qty && it.qty > 0)) return false;
     }
+    if(f.deliveryBatch && !state.deliveries.some(d=>d.itemId===it.id && (d.batchNo||'')===f.deliveryBatch)) return false;
     return true;
   });
 }
