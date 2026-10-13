@@ -582,7 +582,7 @@
     <div class="hub-card" onclick="enterModule(1)">
       <div class="hub-num">MODULE 01</div>
       <h3>Theo dõi quản lý hàng hóa &amp; dự án</h3>
-      <div class="hub-desc">Quản lý danh sách dự án, hàng hóa, PO đặt hàng, đợt giao hàng, thanh toán và phân quyền người dùng.</div>
+      <div class="hub-desc">Quản lý danh sách dự án, hàng hóa, PO đặt hàng, đợt giao hàng.</div>
       <div class="hub-foot"><span class="stamp stamp-green">Đang sử dụng</span></div>
     </div>
     <div class="hub-card disabled" onclick="enterModule(2)">
@@ -640,6 +640,7 @@
     </div>
     <div class="spacer"></div>
     <button class="icon-btn" onclick="openSyncModal()">⇅ Đồng bộ Firebase</button>
+    <button class="icon-btn" id="btnBackup" onclick="openBackupModal()" style="display:none;">💾 Sao lưu</button>
     <button class="icon-btn" id="btnUsers" onclick="openUsersModal()" style="display:none;">👤 Người dùng</button>
     <button class="icon-btn" id="btnActivityLog" onclick="openActivityLogModal()" style="display:none;">📜 Nhật ký</button>
     <div class="user-chip">
@@ -1345,6 +1346,29 @@
   </div>
 </div>
 
+<!-- BACKUP MODAL -->
+<div class="overlay" id="backupModal">
+  <div class="modal wide">
+    <div class="modal-head"><h2>Sao lưu &amp; Khôi phục dữ liệu</h2><button class="modal-close" onclick="closeModal('backupModal')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px; color:var(--ink-600); line-height:1.6;">Tải toàn bộ dữ liệu phần mềm (dự án, hàng hóa, PO, đợt giao hàng, thanh toán, ghi chú, người dùng, phân quyền, nhật ký) về máy thành 1 file <b>.json</b> để lưu trữ. Khi cần, có thể khôi phục lại từ file này.</p>
+
+      <div class="subhead">Dữ liệu hiện có</div>
+      <div id="backupSummary" style="font-size:12.5px; line-height:1.9;"></div>
+      <div class="permission-note" id="backupLastNote"></div>
+
+      <div class="subhead">1. Sao lưu ngay</div>
+      <button class="btn btn-primary btn-sm" onclick="downloadBackup()">⇩ Tải bản sao lưu (.json)</button>
+      <p style="font-size:12px; color:var(--steel-500); margin-top:8px;">File chứa cả tài khoản và mật khẩu người dùng — hãy lưu ở nơi an toàn, không gửi cho người không liên quan.</p>
+
+      <div class="subhead">2. Khôi phục từ file sao lưu</div>
+      <p style="font-size:12.5px; color:var(--ink-600); line-height:1.6;"><b>Lưu ý:</b> khôi phục sẽ <b>thay thế toàn bộ</b> dữ liệu hiện tại (và dữ liệu trên Firebase nếu đang bật đồng bộ) bằng nội dung trong file. Hệ thống tự tải về 1 bản sao lưu dữ liệu hiện tại trước khi khôi phục.</p>
+      <input type="file" id="restoreFileInput" accept=".json,application/json" onchange="handleRestoreFile(event)">
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal('backupModal')">Đóng</button></div>
+  </div>
+</div>
+
 <script>
 /* ================= DATA LAYER ================= */
 const STORAGE_KEY = 'tid_goods_tracker_v1';
@@ -1464,6 +1488,7 @@ const PERMISSION_ACTIONS = [
   {key:'manageUsers', label:'Quản lý người dùng'},
   {key:'manageSettings', label:'Cấu hình đồng bộ Firebase'},
   {key:'viewActivityLog', label:'Xem Nhật ký hoạt động'},
+  {key:'manageBackup', label:'Sao lưu & khôi phục dữ liệu'},
 ];
 function defaultPermissions(){
   return {
@@ -1479,6 +1504,7 @@ function defaultPermissions(){
     manageUsers: ['Admin'],
     manageSettings: ['Admin'],
     viewActivityLog: ['Admin'],
+    manageBackup: ['Admin'],
   };
 }
 function can(action){
@@ -1599,6 +1625,7 @@ function boot(){
   document.getElementById('topUserRole').textContent = user.role;
   document.getElementById('btnUsers').style.display = can('manageUsers') ? 'flex' : 'none';
   document.getElementById('btnActivityLog').style.display = can('viewActivityLog') ? 'flex' : 'none';
+  document.getElementById('btnBackup').style.display = can('manageBackup') ? 'flex' : 'none';
   document.getElementById('addProjectBtnWrap').style.display = can('manageProjects') ? 'block' : 'none';
   renderProjectList();
   renderMain();
@@ -1731,6 +1758,11 @@ function renderMain(){
         <div class="lbl">📝 Ghi chú</div>
         <div class="val">${state.notes.filter(n=>n.projectId===proj.id).length}</div>
         <div class="stat-card-hint">👆 Bấm để xem / thêm</div>
+      </div>
+      <div class="stat-card">
+        <div class="lbl">Thành tiền (theo bộ lọc)</div>
+        <div class="val" id="filteredValueAmt">${fmtMoney(totalContractValue)}</div>
+        <div class="stat-card-sub" id="filteredValueSub">Chưa VAT: ${fmtMoney(totalContractValueNoVat)}</div>
       </div>
     </div>
 
@@ -1950,12 +1982,22 @@ function applyItemFilters(items){
     return true;
   });
 }
+function updateFilteredValueCard(filteredItems){
+  const amtEl = document.getElementById('filteredValueAmt');
+  const subEl = document.getElementById('filteredValueSub');
+  if(!amtEl) return;
+  const value = sum(filteredItems, i=>i.qty*itemUnitPriceVat(i));
+  const valueNoVat = sum(filteredItems, i=>i.qty*(Number(i.price)||0));
+  amtEl.textContent = fmtMoney(value);
+  if(subEl) subEl.textContent = `Chưa VAT: ${fmtMoney(valueNoVat)}`;
+}
 function renderItemsTable(){
   const proj = state.projects.find(p=>p.id===state.ui.currentProjectId);
   const container = document.getElementById('itemsTableContainer');
   if(!proj || !container) return;
   const allItems = state.items.filter(i=>i.projectId===proj.id);
   const items = applyItemFilters(allItems);
+  updateFilteredValueCard(items);
 
   if(allItems.length === 0){
     container.innerHTML = `
@@ -3375,6 +3417,7 @@ const ENTITY_TYPE_LABELS = {
   payment: 'Thanh toán', user: 'Người dùng', permission: 'Phân quyền', import: 'Nhập Excel',
   bulk_delivery: 'Cập nhật giao hàng hàng loạt', bulk_po: 'Cập nhật PO hàng loạt',
   bulk_import_status: 'Cập nhật tiến độ nhập hàng hàng loạt', password: 'Mật khẩu', note: 'Ghi chú',
+  backup: 'Sao lưu / khôi phục dữ liệu',
 };
 const ACTION_LABELS = { add:'Thêm', edit:'Sửa', delete:'Xóa' };
 function actionStampClass(action){
@@ -3613,6 +3656,153 @@ function fbBulkPut(table, records){
 function fbPutPermissions(){
   if(!fbEnabled()) return;
   fbDb.ref('data/_permissions').set(state.permissions).catch(()=>{});
+}
+
+/* ================= BACKUP / RESTORE THỦ CÔNG ================= */
+const BACKUP_APP_ID = 'TID-goods-tracker';
+const BACKUP_TABLE_LABELS = {
+  projects:'Dự án', items:'Hàng hóa', poBatches:'PO đặt hàng', deliveries:'Đợt giao hàng',
+  payments:'Thanh toán', notes:'Ghi chú dự án', users:'Người dùng', activityLog:'Nhật ký hoạt động'
+};
+const LAST_BACKUP_KEY = 'tid_last_backup_at';
+
+function getLastBackupAt(){
+  try{ return Number(localStorage.getItem(LAST_BACKUP_KEY)) || 0; }catch(e){ return 0; }
+}
+function setLastBackupAt(ts){
+  try{ localStorage.setItem(LAST_BACKUP_KEY, String(ts)); }catch(e){}
+}
+function openBackupModal(){
+  if(!can('manageBackup')){ toast('Bạn không có quyền sao lưu / khôi phục dữ liệu.', true); return; }
+  document.getElementById('restoreFileInput').value = '';
+  renderBackupSummary();
+  openModal('backupModal');
+}
+function renderBackupSummary(){
+  document.getElementById('backupSummary').innerHTML = FIREBASE_TABLES.map(t =>
+    `<span style="display:inline-block; min-width:190px;">${BACKUP_TABLE_LABELS[t]||t}: <b>${(state[t]||[]).length}</b></span>`
+  ).join('');
+  const last = getLastBackupAt();
+  document.getElementById('backupLastNote').textContent = last
+    ? 'Lần sao lưu gần nhất trên máy này: ' + new Date(last).toLocaleString('vi-VN') + '.'
+    : 'Chưa có lần sao lưu nào được thực hiện trên máy này.';
+}
+function buildBackupObject(){
+  const u = currentUser();
+  const data = {};
+  FIREBASE_TABLES.forEach(t=>{ data[t] = JSON.parse(JSON.stringify(state[t]||[])); });
+  data.permissions = JSON.parse(JSON.stringify(state.permissions||{}));
+  return {
+    meta: {
+      app: BACKUP_APP_ID,
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      exportedBy: u ? u.name : ''
+    },
+    data
+  };
+}
+function downloadBackupFile(prefix){
+  const obj = buildBackupObject();
+  const d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  const stamp = `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+  const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${prefix}-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  setLastBackupAt(Date.now());
+  return obj;
+}
+function downloadBackup(){
+  if(!can('manageBackup')){ toast('Bạn không có quyền sao lưu dữ liệu.', true); return; }
+  const obj = downloadBackupFile('sao-luu-tid');
+  const total = FIREBASE_TABLES.reduce((s,t)=>s+(obj.data[t]||[]).length, 0);
+  logActivity('add', 'backup', 'Sao lưu dữ liệu', `Tải file sao lưu (${total} bản ghi)`);
+  renderBackupSummary();
+  toast('Đã tải file sao lưu dữ liệu.');
+}
+function handleRestoreFile(evt){
+  if(!can('manageBackup')){ toast('Bạn không có quyền khôi phục dữ liệu.', true); return; }
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    let obj;
+    try{ obj = JSON.parse(e.target.result); }catch(err){
+      toast('File không phải định dạng JSON hợp lệ.', true); return;
+    }
+    if(!obj || !obj.meta || obj.meta.app !== BACKUP_APP_ID || !obj.data){
+      toast('File không phải bản sao lưu của phần mềm này.', true); return;
+    }
+    const d = obj.data;
+    for(const t of FIREBASE_TABLES){
+      if(d[t] !== undefined && !Array.isArray(d[t])){
+        toast(`Dữ liệu "${BACKUP_TABLE_LABELS[t]||t}" trong file bị lỗi.`, true); return;
+      }
+    }
+    if(!Array.isArray(d.users) || !d.users.some(u=>u && u.role==='Admin')){
+      toast('File sao lưu không có tài khoản Admin — không thể khôi phục.', true); return;
+    }
+    const lines = FIREBASE_TABLES.map(t=>`• ${BACKUP_TABLE_LABELS[t]||t}: ${(d[t]||[]).length}`).join('\n');
+    const when = obj.meta.exportedAt ? new Date(obj.meta.exportedAt).toLocaleString('vi-VN') : '(không rõ)';
+    const ok = confirm(`Khôi phục dữ liệu từ bản sao lưu lúc ${when}?\n\n${lines}\n\nToàn bộ dữ liệu hiện tại sẽ bị THAY THẾ. Hệ thống sẽ tự tải về 1 bản sao lưu dữ liệu hiện tại trước khi khôi phục.`);
+    if(!ok) { document.getElementById('restoreFileInput').value = ''; return; }
+    applyRestore(obj);
+  };
+  reader.readAsText(file);
+}
+async function applyRestore(obj){
+  const d = obj.data;
+  // 1) Tự động sao lưu dữ liệu hiện tại trước khi ghi đè
+  downloadBackupFile('truoc-khoi-phuc-tid');
+
+  // 2) Thay thế dữ liệu trong bộ nhớ
+  FIREBASE_TABLES.forEach(t=>{
+    state[t] = (d[t]||[]).filter(r=>r && typeof r === 'object');
+  });
+  state.permissions = (d.permissions && typeof d.permissions === 'object') ? d.permissions : defaultPermissions();
+  state.deletedIds = {projects:[], items:[], poBatches:[], deliveries:[], payments:[], users:[], notes:[]};
+  state.projects.forEach(p=>{ if(p.system===undefined) p.system=''; if(p.progress===undefined) p.progress='Chưa khởi công'; if(p.progressPct===undefined) p.progressPct=0; });
+  state.items.forEach(i=>{ if(i.system===undefined) i.system=''; if(i.brand===undefined) i.brand=''; if(i.origin===undefined) i.origin=''; if(i.importStatus===undefined) i.importStatus='Chờ duyệt'; if(i.vat===undefined) i.vat=0; if(i.note===undefined) i.note=''; if(i.contractType===undefined) i.contractType='Hợp đồng'; if(i.contractRef===undefined) i.contractRef=''; });
+  if(!state.projects.some(p=>p.id===state.ui.currentProjectId)){
+    state.ui.currentProjectId = state.projects[0] ? state.projects[0].id : null;
+  }
+  saveState();
+
+  // 3) Ghi đè lên Firebase nếu đang bật đồng bộ
+  let fbOk = true;
+  if(fbEnabled()){
+    try{
+      for(const t of FIREBASE_TABLES){
+        const map = {};
+        (state[t]||[]).forEach(r=>{ if(r.id) map[r.id] = r; });
+        await fbDb.ref('data/'+t).set(map);
+      }
+      await fbDb.ref('data/_permissions').set(state.permissions);
+    }catch(err){
+      fbOk = false;
+      console.error('Restore to Firebase failed', err);
+    }
+  }
+
+  document.getElementById('restoreFileInput').value = '';
+  closeModal('backupModal');
+
+  // Tài khoản đang đăng nhập không còn trong bản sao lưu => đăng xuất
+  if(!currentUser()){
+    toast('Đã khôi phục dữ liệu. Tài khoản đang đăng nhập không có trong bản sao lưu — vui lòng đăng nhập lại.');
+    handleLogout();
+    return;
+  }
+  logActivity('edit', 'backup', 'Khôi phục dữ liệu', `Từ bản sao lưu lúc ${obj.meta.exportedAt || ''}`);
+  boot();
+  toast(fbOk ? 'Đã khôi phục dữ liệu từ file sao lưu.' : 'Đã khôi phục trên máy này nhưng chưa ghi được lên Firebase. Kiểm tra kết nối rồi thử lại.', !fbOk);
 }
 
 async function autoReconnectFirebase(){
